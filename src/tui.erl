@@ -1,4 +1,4 @@
--module(erlang_tui).
+-module(tui).
 
 -export([format/2]).
 -export([print/2]).
@@ -33,8 +33,8 @@
           bg_white => "47"}).
 
 -define(ESC, 27).
--define(CHAR_ATTRIBUTE, $m).
 -define(CTRL_SEQ_INTRO, $[).
+-define(CHAR_ATTRIBUTE, $m).
 
 escape(Feature) ->
     #{Feature := Code} = ?FEATURES,
