@@ -1,6 +1,7 @@
 -module(tui_fun).
 
 -export([xo_table/2]).
+-export([colors_by_index/0]).
 
 % draw a table of X's and O's with contracsting foreground and background
 % colors
@@ -17,3 +18,20 @@ xo_table(W, H) ->
     Row2 = lists:flatten([[BlackO, WhiteX] || _ <- lists:seq(1, W)]),
     Rows = lists:flatten([[Row1, ?CR, Row2, ?CR] || _ <- lists:seq(1, H)]),
     io:format("~s", [Rows]).
+
+colors_by_index() ->
+    ColorIndexes = [integer_to_list(I) || I <- lists:seq(1, 255)],
+    F =
+        fun(F, I, [C | Rest]) ->
+            Padded = lists:flatten(io_lib:format("~5.. s", [C])),
+            tui:print(Padded, [{fg, C}]),
+            case I rem 10 of
+                0 ->
+                    tui:print([10], []);
+                _ -> ok
+            end,
+            F(F, I + 1, Rest);
+         (_, _, []) ->
+                ok
+        end,
+    F(F, 1, ColorIndexes).
