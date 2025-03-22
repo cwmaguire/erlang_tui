@@ -3,6 +3,7 @@
 -export([escape/1]).
 -export([format/2]).
 -export([print/2]).
+-export([cursor/1]).
 
 % * = doesn't work in gnome-terminal
 -define(FEATURES,
@@ -53,7 +54,8 @@
 -define(ESC, 27).
 -define(CTRL_SEQ_INTRO, $[).
 -define(CHAR_ATTRIBUTE, $m).
--define(RGB, "38:2:").
+-define(FG_RGB, "38:2:").
+-define(BG_RGB, "48:2:").
 -define(INDEXED_FG_COLOR, "38:5:").
 -define(INDEXED_BG_COLOR, "48:5:").
 
@@ -63,9 +65,12 @@ escape({fg, IndexedColor}) when is_list(IndexedColor) ->
 escape({bg, IndexedColor}) when is_list(IndexedColor) ->
     % "0" to "255"
     [?ESC, ?CTRL_SEQ_INTRO, ?INDEXED_BG_COLOR, IndexedColor, ?CHAR_ATTRIBUTE];
-escape({R, G, B}) ->
+escape({fg, R, G, B}) ->
     % "0" to "255" or R, G, and B
-    [?ESC, ?CTRL_SEQ_INTRO, ?RGB, R, $:, G, $:, B, ?CHAR_ATTRIBUTE];
+    [?ESC, ?CTRL_SEQ_INTRO, ?FG_RGB, R, $:, G, $:, B, ?CHAR_ATTRIBUTE];
+escape({bg, R, G, B}) ->
+    % "0" to "255" or R, G, and B
+    [?ESC, ?CTRL_SEQ_INTRO, ?BG_RGB, R, $:, G, $:, B, ?CHAR_ATTRIBUTE];
 escape(Feature) ->
     #{Feature := Code} = ?FEATURES,
     [?ESC, ?CTRL_SEQ_INTRO, Code, ?CHAR_ATTRIBUTE].
@@ -78,3 +83,20 @@ format(Text, Features) ->
 
 print(Text, Features) ->
     io:format("~s", [format(Text, Features)]).
+
+-define(CURSORS,
+        #{blinking_block => "0",
+          blinking_block_default => "1",
+          steady_block => "2",
+          blinking_underline => "3",
+          steady_underline => "4",
+          blinking_bar => "5",
+          steady_bar => "6"}).
+
+-define(SPACE, $ ).
+-define(CURSOR, $q).
+
+cursor(Cursor) ->
+    #{Cursor := Code} = ?CURSORS,
+    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Code, ?SPACE, ?CURSOR],
+    io:format("~s", [EscapeCommand]).
