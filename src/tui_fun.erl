@@ -2,6 +2,8 @@
 
 -export([xo_table/2]).
 -export([colors_by_index/0]).
+-export([clock_start/0]).
+-export([clock_stop/0]).
 
 % draw a table of X's and O's with contracsting foreground and background
 % colors
@@ -35,3 +37,33 @@ colors_by_index() ->
                 ok
         end,
     F(F, 1, ColorIndexes).
+
+clock_start() ->
+    Pid = spawn(fun clock/0),
+    register(tui_clock, Pid).
+
+clock_stop() ->
+    tui_clock ! stop.
+
+clock() ->
+    case
+        receive
+            stop ->
+                stop
+        after 1000 ->
+            ok
+        end of
+        stop ->
+            ok;
+        _ ->
+            Time = format_time(),
+            tui:pos("1", "1"),
+            tui:print(Time, [bg_white, fg_green]),
+            clock()
+    end.
+
+format_time() ->
+    {{Y, M, D}, {H, Min, S}} = erlang:localtime(),
+    Strings = [integer_to_list(I) || I <- [Y, M, D, H, Min, S]],
+    io_lib:format("~s-~s-~s ~s:~s:~s", Strings).
+

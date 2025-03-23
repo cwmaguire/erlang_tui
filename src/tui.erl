@@ -4,6 +4,9 @@
 -export([format/2]).
 -export([print/2]).
 -export([cursor/1]).
+-export([pos/2]).
+-export([repeat_prev_char/1]).
+-export([repeat_char/2]).
 
 % * = doesn't work in gnome-terminal
 -define(FEATURES,
@@ -100,3 +103,20 @@ cursor(Cursor) ->
     #{Cursor := Code} = ?CURSORS,
     EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Code, ?SPACE, ?CURSOR],
     io:format("~s", [EscapeCommand]).
+
+-define(POS, $f).
+
+pos(X, Y) ->
+    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, X, $;, Y, ?POS],
+    io:format("~s", [EscapeCommand]).
+
+-define(REPEAT, $b).
+
+% doesn't seem to work
+repeat_prev_char(Count) ->
+    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT],
+    io:format("~s", [EscapeCommand]).
+
+repeat_char(Char, Count) ->
+    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT],
+    io:format("~s~s", [Char, EscapeCommand]).
