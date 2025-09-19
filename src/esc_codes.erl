@@ -116,14 +116,14 @@
 -define(INDEXED_BG_COLOR, "48:5:").
 
 alternate_screen_buffer(true) ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, $?, ?ALT_SCREEN_BUFFER, ?ALT_SCREEN_BUFFER_ON]);
-alternate_screen_buffer(true) ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, $?, ?ALT_SCREEN_BUFFER, ?ALT_SCREEN_BUFFER_OFF]).
+    [?ESC, ?CTRL_SEQ_INTRO, $?, ?ALT_SCREEN_BUFFER, ?ALT_SCREEN_BUFFER_ON];
+alternate_screen_buffer(false) ->
+    [?ESC, ?CTRL_SEQ_INTRO, $?, ?ALT_SCREEN_BUFFER, ?ALT_SCREEN_BUFFER_OFF].
 
 show_cursor(true) ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, $?, ?CURSOR_ON_OFF, ?CURSOR_ON]);
+    [?ESC, ?CTRL_SEQ_INTRO, $?, ?CURSOR_ON_OFF, ?CURSOR_ON];
 show_cursor(false) ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, $?, ?CURSOR_ON_OFF, ?CURSOR_OFF]).
+    [?ESC, ?CTRL_SEQ_INTRO, $?, ?CURSOR_ON_OFF, ?CURSOR_OFF].
 
 fg_idx(IndexedColor) when is_list(IndexedColor) ->
 	% "0" to "255"
@@ -156,23 +156,19 @@ print(Text, Features) ->
 
 cursor(Cursor) ->
     #{Cursor := Code} = ?CURSORS,
-    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Code, ?SPACE, ?CURSOR],
-    io:format("~s", [EscapeCommand]).
+    [?ESC, ?CTRL_SEQ_INTRO, Code, ?SPACE, ?CURSOR].
 
 -define(POS, $f).
 
 pos(X, Y) ->
-    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, X, $;, Y, ?POS],
-    io:format("~s", [EscapeCommand]).
+    [?ESC, ?CTRL_SEQ_INTRO, X, $;, Y, ?POS].
 
 % doesn't seem to work
 repeat_prev_char(Count) ->
-    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT],
-    io:format("~s", [EscapeCommand]).
+    [?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT].
 
 repeat_char(Char, Count) ->
-    EscapeCommand = [?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT],
-    io:format("~s~s", [Char, EscapeCommand]).
+    [Char, ?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT].
 
 % CSI Ps n  Device Status Report (DSR).
 %             Ps = 5  ⇒  Status Report.
@@ -195,14 +191,14 @@ repeat_char(Char, Count) ->
 %           can change the form of the string sent from the modified F3
 %           key.
 device_status_report() ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, $5, $n]).
+    [?ESC, ?CTRL_SEQ_INTRO, $5, $n].
 
 get_cursor_position() ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, $6, $n]).
+    [?ESC, ?CTRL_SEQ_INTRO, $6, $n].
 
 % CSI > Ps q
 %  Ps = 0  ⇒  Report xterm name and version (XTVERSION).
 
 %  The response is a DSR sequence identifying the version: DCS > | text ST
 xterm_name_version() ->
-    io:put_chars([?ESC, ?CTRL_SEQ_INTRO, ">0q"]).
+    [?ESC, ?CTRL_SEQ_INTRO, ">0q"].
