@@ -1,4 +1,7 @@
 .rebar3
+rebar.lock
+rebar3.crashdump
+
 _build
 _checkouts
 _vendor
@@ -16,5 +19,4 @@ erl_crash.dump
 logs
 .idea
 *.iml
-rebar3.crashdump
 *~

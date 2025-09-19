@@ -1,7 +1,8 @@
-{application, erlang_tui, [
-    {description, "Xterm TUI library"},
+{application, cm_shell, [
+    {description, "An OTP application"},
     {vsn, "0.1.0"},
     {registered, []},
+    {mod, {cm_shell_app, []}},
     {applications, [
         kernel,
         stdlib

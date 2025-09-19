@@ -1,0 +1,2 @@
+#!/usr/bin/env zsh
+rebar3 compile && erl -noshell -pa _build/default/lib/cm_shell/ebin -s cm_shell_app start

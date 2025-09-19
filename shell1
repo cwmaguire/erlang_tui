@@ -1,0 +1,5 @@
+#!/usr/bin/env escript
+%%! -noshell -pa _build/default/lib/cm_shell/ebin
+main(_Args) ->
+    %code:add_path("_build/default/lib/cm_shell/ebin"),
+	application:start(cm_shell).

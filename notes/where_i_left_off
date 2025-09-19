@@ -1,0 +1,50 @@
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-17   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+figured out how to start Erlang and shut it down without an Escript:
+
+  % rebar3 compile && erl -noshell -pa _build/default/lib/cm_shell/ebin -s cm_shell_app start
+  ===> Verifying dependencies...
+  ===> Analyzing applications...
+  ===> Compiling cm_shell
+  call cm_shell_sup:start_link()
+  super init
+  cm_shell_io:start_link()
+  cm_shell_io:init([])
+  cm_shell_io:handle_cast(start, _State)
+  Hello world 0
+  Hello world
+  ok
+    after io:formatcm_shell_io terminated
+                                         Application cm_shell stopping
+
+  I was able to get the checkerboard (xo table) to print. Yay!
+
+  A couple key things to note:
+  - The `-s Mod Fun Arg` argument to `erl` passes [Arg] as the arguments,
+    unless you provide zero arguments. So we do `-s Mod Fun` and call
+    cm_shell_app start with no args, and then have *that* call
+    application:start(cm_shell). If we just try and do `-s application start
+    cm_shell` then it will try and call `application:start([cm_shell])`, which
+    doesn't work.
+  - In order to get the supervisor to shut down we mark our one gen_server child
+    as "significant" and "transient": transient means it doesn't need to be
+    restarted, significant means if it stops, the supervisor might stop.
+  - To stop the gen_server with no errors we have to set the reason to `normal`
+    ... I think.
+  - In order to get the supervisor to shut down we set `auto_shutdown` to
+    `any_significat`: if any "significant" child shuts down, the supervisor
+    stops. The child can't be `permanent`, otherwise the supervisor has to keep
+    trying to restart it until it blows it's restart breaker.
+  - In order to get Erlang to stop we use the Application `stop/1` call back and
+    call halt(). Apparently, once the supervisor stops, the application stops.
+  - `-s` and `-S` have slightly different argument handling.
+
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-16   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+To Do:
+- Draw a vertical split between windows; I'll probably need to model windows and maintain a list of them
+  See [windows]

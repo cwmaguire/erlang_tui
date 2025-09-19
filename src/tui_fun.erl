@@ -11,14 +11,15 @@
 % XOX
 % OXO
 
--define(CR, 10).
+-define(CR, 13).
+-define(LF, 10).
 
 xo_table(W, H) ->
     WhiteX = tui:format("X", [bg_white, fg_green]),
     BlackO = tui:format("O", [bg_black, fg_yellow]),
     Row1 = lists:flatten([[WhiteX, BlackO] || _ <- lists:seq(1, W)]),
     Row2 = lists:flatten([[BlackO, WhiteX] || _ <- lists:seq(1, W)]),
-    Rows = lists:flatten([[Row1, ?CR, Row2, ?CR] || _ <- lists:seq(1, H)]),
+    Rows = lists:flatten([[Row1, ?LF, ?CR, Row2, ?LF, ?CR] || _ <- lists:seq(1, H)]),
     io:format("~s", [Rows]).
 
 colors_by_index() ->

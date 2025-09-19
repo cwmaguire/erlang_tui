@@ -1,0 +1,9 @@
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-16   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+I want to model windows (or panes) like tmux or vim.
+
+I'll need a width and height. Maybe.
+
+I could model them as splits: you start with the main window and then start splitting it; or I could give them fixed sizes and positions.
