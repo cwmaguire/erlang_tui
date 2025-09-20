@@ -1,4 +1,4 @@
--module(esc_codes).
+-module(cs_esc).
 
 %        https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 %                        
@@ -28,14 +28,17 @@
 -export([set_feature/1]).
 -export([device_status_report/0]).
 -export([get_cursor_position/0]).
-
+-export([get_screen_size/0]).
+-export([get_textarea_size/0]).
 
 -export([format/2]).
--export([print/2]).
--export([cursor/1]).
--export([pos/2]).
+-export([cursor_type/1]).
+-export([cursor_pos/2]).
 -export([repeat_prev_char/1]).
 -export([repeat_char/2]).
+
+-export([parse_escape_code/1]).
+-export([parse_escape_code/2]).
 
 % * = doesn't work in gnome-terminal
 -define(FEATURES,
@@ -100,6 +103,8 @@
 -define(CURSOR_ON, $h).
 -define(CURSOR_OFF, $l).
 
+
+-define(CURSOR_POS, $H).
 -define(SPACE, $ ).
 -define(CURSOR, $q).
 -define(ESC, 27).
@@ -151,17 +156,12 @@ format(Text, Features) ->
     %Normal16 = escape(none_16),
     lists:flatten([Escapes, Text, Normal]).
 
-print(Text, Features) ->
-    io:format("~s", [format(Text, Features)]).
-
-cursor(Cursor) ->
+cursor_type(Cursor) ->
     #{Cursor := Code} = ?CURSORS,
     [?ESC, ?CTRL_SEQ_INTRO, Code, ?SPACE, ?CURSOR].
 
--define(POS, $f).
-
-pos(X, Y) ->
-    [?ESC, ?CTRL_SEQ_INTRO, X, $;, Y, ?POS].
+cursor_pos(X, Y) ->
+    [?ESC, ?CTRL_SEQ_INTRO, X, $;, Y, ?CURSOR_POS].
 
 % doesn't seem to work
 repeat_prev_char(Count) ->
@@ -202,3 +202,23 @@ get_cursor_position() ->
 %  The response is a DSR sequence identifying the version: DCS > | text ST
 xterm_name_version() ->
     [?ESC, ?CTRL_SEQ_INTRO, ">0q"].
+
+get_screen_size() ->
+	[?ESC, ?CTRL_SEQ_INTRO, "19t"].
+
+get_textarea_size() ->
+	[?ESC, ?CTRL_SEQ_INTRO, "18t"].
+
+parse_escape_code([?CTRL_SEQ_INTRO, $8, $; | Rest]) ->
+    [H0, W0] = string:split(Rest, ";"),
+	{H, _} = string:to_integer(H0),
+	{W, _} = string:to_integer(W0),
+	io:format("Got textarea size: ~p, ~p~n", [H, W]),
+	{textarea_size, H, W};
+parse_escape_code(Other) ->
+	io:format("Unrecognized escape code: ~p~n", [Other]),
+	{textarea_size, 0, 0}.
+
+parse_escape_code(A, B) ->
+	io:format("Unrecognized escape code: ~p ~p~n", [A, B]),
+	{textarea_size, -1, -1}.

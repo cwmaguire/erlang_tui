@@ -1,4 +1,32 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-20   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+A gen_server will manage the windows. It starts with one window. It doesn't draw
+anything, it just knows where the windows are. I'm not sure if it will know
+where the _first_ window is, and everything else is relative to that, of if it
+will know where all the windows are. If you closed the first window, it would
+have to decide what the next window was.
+
+I'm going to play around with window arrangements with x's for windows
+
+xx
+
+x
+x
+
+x x
+ x
+
+I think in Vim every window can be split. One thing _I'd_ like to have, is
+telling a window to move to split another window
+
+go from  x x to   x   i.e. top-right becomes bottom right. You _might_ be
+          x      x x
+able to do that in vim with a rotate. I'm not sure.
+
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-16   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
@@ -6,4 +34,5 @@ I want to model windows (or panes) like tmux or vim.
 
 I'll need a width and height. Maybe.
 
-I could model them as splits: you start with the main window and then start splitting it; or I could give them fixed sizes and positions.
+I could model them as splits: you start with the main window and then start
+splitting it; or I could give them fixed sizes and positions.
