@@ -215,12 +215,18 @@ parse_escape_code([?CTRL_SEQ_INTRO, $8, $; | Rest]) ->
     [H0, W0] = string:split(Rest, ";"),
 	{H, _} = string:to_integer(H0),
 	{W, _} = string:to_integer(W0),
-	io:format("Got textarea size: ~p, ~p~n", [H, W]),
+	io:put_chars("."),
 	{textarea_size, H, W};
+parse_escape_code([?CTRL_SEQ_INTRO, $9, $; | Rest]) ->
+    [H0, W0] = string:split(Rest, ";"),
+	{H, _} = string:to_integer(H0),
+	{W, _} = string:to_integer(W0),
+	io:put_chars("."),
+	{screen_size, H, W};
 parse_escape_code(Other) ->
-	io:format("Unrecognized escape code: ~p~n", [Other]),
-	{textarea_size, 0, 0}.
+	io:format("?~p~n", [Other]),
+	{unrecognized_escape_code, Other}.
 
 parse_escape_code(A, B) ->
-	io:format("Unrecognized escape code: ~p ~p~n", [A, B]),
-	{textarea_size, -1, -1}.
+	io:format("?!~p|~p~n", [A, B]),
+	{unrecognized_escape_code, A, B}.
