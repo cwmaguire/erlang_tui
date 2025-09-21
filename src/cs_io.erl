@@ -76,7 +76,6 @@ terminate(_, _) ->
 start() ->
     ok = shell:start_interactive({noshell, raw}),
 	tui_mode(true),
-	io:put_chars("hi!"),
 	start_input_loop(),
 	get_textarea_size().
 
