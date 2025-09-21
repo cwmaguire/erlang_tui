@@ -128,4 +128,6 @@ publish(Group, {textarea_size, H, W}) ->
 	[Pid ! {textarea_size, H, W} || Pid <- Group].
 
 cursor_pos(X, Y) ->
+    [?ESC | Rest] = cs_esc:cursor_pos(X, Y),
+	io:format("Set cursor: ~p~n", [Rest]),
 	io:put_chars(cs_esc:cursor_pos(X, Y)).

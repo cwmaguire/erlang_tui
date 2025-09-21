@@ -160,8 +160,10 @@ cursor_type(Cursor) ->
     #{Cursor := Code} = ?CURSORS,
     [?ESC, ?CTRL_SEQ_INTRO, Code, ?SPACE, ?CURSOR].
 
-cursor_pos(X, Y) ->
-    [?ESC, ?CTRL_SEQ_INTRO, X, $;, Y, ?CURSOR_POS].
+cursor_pos(X0, Y0) ->
+	X = integer_to_list(X0),
+	Y = integer_to_list(Y0),
+    [?ESC, ?CTRL_SEQ_INTRO, Y, $;, X, ?CURSOR_POS].
 
 % doesn't seem to work
 repeat_prev_char(Count) ->
