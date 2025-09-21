@@ -100,9 +100,9 @@ get_textarea_size() ->
 	io:put_chars(cs_esc:get_textarea_size()).
 
 %% TODO send this to one or more parsing servers
-parse([27]) ->
+parse([?ESC]) ->
 	io:put_chars("?ESC");
-parse([27 | Rest]) ->
+parse([?ESC | Rest]) ->
 	gen_server:cast(self(), cs_esc:parse_escape_code(Rest));
 parse("q") ->
     quit();
