@@ -1,0 +1,7 @@
+# .elp.toml
+[build_info]
+apps = [{ name = "cm_shell", dir = "." }]
+deps = "deps/*"
+
+[rebar]
+profile = "test"
