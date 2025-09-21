@@ -14,13 +14,11 @@
 			    w = 0}).
 
 start_link(CoordsFun, {H, W}) ->
-	io:put_chars("cs_window:start_link\r\n"),
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [CoordsFun, {H, W}], []).
 
 init([CoordsFun, {H, W}]) ->
-	io:put_chars("init, set cursor pos"),
-    cs_io:cursor_pos(35, 50),
-	io:put_chars("Hello World!"),
+    cs_io:cursor_pos(50, 15),
+	io:put_chars("pos:50,15"),
 	{ok, #state{coords_fun = CoordsFun,
 			    h = H,
 			    w = W}}.
