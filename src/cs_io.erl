@@ -54,9 +54,10 @@ handle_cast(restart, State) ->
 	{noreply, State};
 handle_cast(quit, State) ->
     {stop, normal, State}; 
-handle_cast(_Req, State) ->
+handle_cast(Req, State) ->
+	io:format("cs_io unrecognized cast: ~p~n", [Req]),
 	{noreply, State}.
-
+%
 handle_info({Ref, join, textarea_size, Joined},
 			State = #state{monitor = Ref,
 			               textarea_size = {H, W}}) ->
