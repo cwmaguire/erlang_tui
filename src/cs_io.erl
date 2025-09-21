@@ -16,6 +16,8 @@
 -record(state, {textarea_size,
 			    monitor}).
 
+-define(ESC, 27).
+
 quit() ->
 	gen_server:cast(self(), quit).
 
