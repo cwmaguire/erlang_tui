@@ -1,4 +1,61 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-21   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Window organization & borders:
+
+  The screen has rows, rows can have columns, columns can have rows, ...
+
+  X
+  --     2 rows
+  Y
+
+  X | Z
+  -----       2 rows, row 1 has two columns
+    Y
+
+    X
+  -----
+  Y | Z       3 rows, row 2 has 2 columns
+  -----
+    W
+
+    X  |
+  -----|
+  Y | Z| A    1 row, column 1 has 3 rows, row {1,2} has 2 columns
+  -----|
+    W  |
+
+If you go from   X   to   Y |    you've gone from 3 rows, to 1 row with 2 columns,
+                ---      ---| X
+		 Y        Z |
+		---
+		 Z
+
+and rows 2 and 3 now part of column 1 of row 1.
+
+[Row(X), Row(Y), Row(Z)] -> [Row[Col[Row(Y),Row(Z)],Col(X)]]
+
+                            [[[Y, [Z,A]],[X]]]
+
+[[X], [Y], [Z]] -> [ [ [Y, Z],[X]]]
+^                  ^ ^ ^      ^
+|                  | | Col 1  Col 2
+|                  | Row 1
+|                  List of Rows, of which there is 1
+List of rows, of which there are three
+
+      *             *              *         *
+    / | \           |            / | \       |
+   R  R  R          R           R  R  R      R
+   |  |  |        /   \         |  |  |     / \
+   C  C  C       C     C        X  Y  Z    C   X
+   |  |  |      / \     \                 / \
+   X  Y  Z     R   R     X               Y   Z
+               |   |
+	       Y   Z
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-20   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

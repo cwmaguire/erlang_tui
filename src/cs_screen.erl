@@ -33,6 +33,7 @@
 -export([handle_info/2]).
 
 -record(state, {windows = [],
+                borders = [],
                 focused_window_id,
                 next_id = 1,
                 h = 0,
@@ -95,6 +96,7 @@ create_first_window(State = #state{next_id = Id}, H, W) ->
                 next_id = Id + 1}.
 
 split_vertical( State = #state{windows = Windows,
+                               borders = Borders,
                                focused_window_id = FocusId,
                                next_id = Id,
                                h = H,
@@ -119,5 +121,8 @@ split_vertical( State = #state{windows = Windows,
                                 Windows),
     NewWindows = [OldWindow2, NewWindow | OtherWindows],
 
+    NewBorders = [{FocusId, Id} | Borders],
+
     State#state{windows = NewWindows,
+                borders = NewBorders,
                 focused_window_id = Id}.
