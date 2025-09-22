@@ -28,7 +28,7 @@ init([]) ->
     },
     ChildSpecs = [#{id => ignored,
 					start => {cs_window, start_link, []},
-				    restart => transient}],
+				    shutdown => brutal_kill}],
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions

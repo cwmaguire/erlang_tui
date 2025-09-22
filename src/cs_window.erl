@@ -9,17 +9,23 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
--record(state, {coords_fun,
+-record(state, {translate_fun,
 			    h = 0,
-			    w = 0}).
+			    w = 0,
+			    cursor_pos}).
 
-start_link(CoordsFun, {H, W}) ->
-	gen_server:start_link({local, ?MODULE}, ?MODULE, [CoordsFun, {H, W}], []).
+start_link(TranslateFun, {H, W}) ->
+	gen_server:start_link(?MODULE,
+						  [TranslateFun, {H, W}],
+						  _Opts = []).
 
-init([CoordsFun, {H, W}]) ->
-    cs_io:cursor_pos(50, 15),
-	io:put_chars("pos:50,15"),
-	{ok, #state{coords_fun = CoordsFun,
+init([TranslateFun, {H, W}]) ->
+	{X, Y} = TranslateFun(0, 0),
+    Msg = io_lib:format("cursor ~p,~p", [X, Y]),
+    cs_io:do_atomic_ops([{cursor_pos, X, Y},
+						 {write, Msg}]),
+	{ok, #state{translate_fun = TranslateFun,
+				cursor_pos = {0, 0},
 			    h = H,
 			    w = W}}.
 

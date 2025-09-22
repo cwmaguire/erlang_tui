@@ -12,6 +12,7 @@
 -export([quit/0]).
 -export([sub_textarea_size/1]).
 -export([cursor_pos/2]).
+-export([do_atomic_ops/1]).
 
 -record(state, {textarea_size,
 			    monitor}).
@@ -23,6 +24,13 @@ quit() ->
 
 sub_textarea_size(Pid) ->
 	gen_server:cast(?MODULE, {sub_text_area_size, Pid}).
+
+do_atomic_ops(Ops) ->
+	gen_server:cast(cs_io, {atomic, Ops}).
+
+cursor_pos(X, Y) ->
+	gen_server:cast(cs_io, {cursor_pos, X, Y}).
+
 
 start_link() ->
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -49,6 +57,9 @@ handle_cast({textarea_size, H, W}, State) ->
     Group = pg:get_members(textarea_size),
 	publish(Group, {textarea_size, H, W}),
 	{noreply, State#state{textarea_size = {H, W}}};
+handle_cast({atomic, Ops}, State) ->
+	[do_atomic_ops_(Op) || Op <- Ops],
+	{noreply, State};
 handle_cast(restart, State) ->
 	start_input_loop(),
 	{noreply, State};
@@ -118,6 +129,8 @@ parse("c") ->
 parse("r") ->
 	{ok, Rows} = io:rows(),
 	io:put_chars(["Rows ", integer_to_list(Rows), "\r\n"]);
+parse("|") ->
+	gen_server:cast(cs_screen, split_vertical);
 parse(List) when is_list(List) ->
     io:put_chars(List);
 parse(Other) ->
@@ -127,7 +140,11 @@ parse(Other) ->
 publish(Group, {textarea_size, H, W}) ->
 	[Pid ! {textarea_size, H, W} || Pid <- Group].
 
-cursor_pos(X, Y) ->
-    [?ESC | Rest] = cs_esc:cursor_pos(X, Y),
-	io:format("Set cursor: ~p~n", [Rest]),
+cursor_pos_(X, Y) ->
 	io:put_chars(cs_esc:cursor_pos(X, Y)).
+
+do_atomic_ops_({cursor_pos, X, Y}) ->
+	cursor_pos_(X, Y);
+do_atomic_ops_({write, Str}) ->
+	io:put_chars(Str).
+
