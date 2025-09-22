@@ -33,88 +33,91 @@
 -export([handle_info/2]).
 
 -record(state, {windows = [],
-				focused_window_id,
-				next_id = 1,
-			    h = 0,
-			    w = 0}).
+                focused_window_id,
+                next_id = 1,
+                h = 0,
+                w = 0}).
 
 -record(window, {id,
-				 pid,
-				 x = 0,
-				 y = 0,
-				 h = 0,
-				 w = 0}).
+                 pid,
+                 x = 0,
+                 y = 0,
+                 h = 0,
+                 w = 0}).
 
 start_link() ->
-	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_Args) ->
-	pg:join(textarea_size, self()),
-	{ok, #state{}}.
+    pg:join(textarea_size, self()),
+    {ok, #state{}}.
 
 handle_call(_Req, _From, State) ->
-	{reply, ok, State}.
+    {reply, ok, State}.
 
-handle_cast(split_vertical,
-			State = #state{windows = Windows,
-						   focused_window_id = FocusId,
-			               next_id = Id,
-						   h = H,
-						   w = W}) ->
-	io:put_chars("split vert"),
-	OldWindow = 
-		#window{x = X,
-			    y = Y,
-				h = H,
-				w = W} = get_focused_window(FocusId, Windows),
-	W1 = W div 2,
-	W2 = W1 - (1 - (W rem 2)),
-	BorderWidth = 1,
-	NewWindow = window(Id, X + W1 + BorderWidth, Y, H, W2),
-	OldWindow2 = OldWindow#window{w = W1},
-	OtherWindows = lists:filter(fun(#window{id = Id_})
-								  when Id_ /= FocusId ->
-									true;
-								   (_) ->
-									false
-								end,
-								Windows),
-	NewWindows = [OldWindow2, NewWindow | OtherWindows],
-
-	{noreply, State#state{windows = NewWindows,
-					      focused_window_id = Id}};
+handle_cast(split_vertical, State) ->
+    {noreply, _NewState = split_vertical(State)};
 handle_cast(_Req, State) ->
-	{noreply, State}.
+    {noreply, State}.
 
-handle_info({textarea_size, H, W},
-			State = #state{windows = [],
-						   next_id = Id}) ->
-	Window = window(Id, _X = 0, _Y = 0, H, W),
-	{noreply, State#state{h = H,
-						  w = W,
-						  focused_window_id = Id,
-						  windows = [Window],
-						  next_id = Id + 1}};
+handle_info({textarea_size, H, W}, State = #state{windows = []}) ->
+    {noreply, _NewState = create_first_window(State, H, W)};
 handle_info({textarea_size, H, W}, State) ->
-	% TODO update window sizes
-	{noreply, State#state{h = H, w = W}};
+    % TODO update window sizes
+    {noreply, State#state{h = H, w = W}};
 handle_info(_Info, State) ->
-	{noreply, State}.
+    {noreply, State}.
 
 terminate(_, _) ->
-	ok.
+    ok.
 
 window(Id, X, Y, H, W) ->
-	F = translate_fun(X, Y),
-	{ok, Pid} = supervisor:start_child(cs_window_sup, [F, {H, W}]),
-	#window{id = Id, pid = Pid, h = H, w = W}.
+    F = translate_fun(X, Y),
+    {ok, Pid} = supervisor:start_child(cs_window_sup, [F, {H, W}]),
+    #window{id = Id, pid = Pid, h = H, w = W}.
 
 translate_fun(ScreenX, ScreenY) ->
-	fun(WindowX, WindowY) ->
-			{ScreenX + WindowX,
-			 ScreenY + WindowY}
-	end.
+    fun(WindowX, WindowY) ->
+            {ScreenX + WindowX,
+             ScreenY + WindowY}
+    end.
 
 get_focused_window(FocusId, Windows) ->
-	Index = #window.id,
-    Window = #window{} = lists:keyfind(FocusId, Index, Windows).
+    Index = #window.id,
+    #window{} = lists:keyfind(FocusId, Index, Windows).
+
+create_first_window(State = #state{next_id = Id}, H, W) ->
+    Window = window(Id, _X = 0, _Y = 0, H, W),
+    State#state{h = H,
+                w = W,
+                focused_window_id = Id,
+                windows = [Window],
+                next_id = Id + 1}.
+
+split_vertical( State = #state{windows = Windows,
+                               focused_window_id = FocusId,
+                               next_id = Id,
+                               h = H,
+                               w = W}) ->
+    io:put_chars("split vert"),
+    OldWindow = 
+        #window{x = X,
+                y = Y,
+                h = H,
+                w = W} = get_focused_window(FocusId, Windows),
+    W1 = W div 2,
+    W2 = W1 - (1 - (W rem 2)),
+    BorderWidth = 1,
+    NewWindow = window(Id, X + W1 + BorderWidth, Y, H, W2),
+    OldWindow2 = OldWindow#window{w = W1},
+    OtherWindows = lists:filter(fun(#window{id = Id_})
+                                  when Id_ /= FocusId ->
+                                    true;
+                                   (_) ->
+                                    false
+                                end,
+                                Windows),
+    NewWindows = [OldWindow2, NewWindow | OtherWindows],
+
+    State#state{windows = NewWindows,
+                focused_window_id = Id}.
