@@ -1,0 +1,14 @@
+{
+  "apps":
+  [
+    {
+      "name": "cm_shell",
+      "dir": ".",
+      "src_dirs": ["src"],
+      "ebin": "_build/default/lib/cm_shell/ebin",
+      "include_dirs": ["include"]
+      
+    }
+  ],
+  "deps": []
+}

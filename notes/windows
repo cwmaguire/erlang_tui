@@ -1,4 +1,234 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-24   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Every window must be in a column. I've arbitrarily decided to
+start with rows as the top level container. Windows must then be in columns
+because the ... well, just because. The other option is to have both rows and
+columns be implied.
+
+Hmm, no, I think any non-list is just a window and a window can be in a row or a
+column, depending on how many parnet lists it has:
+
+1 parent:  row (because top list is arbitrarily a list of rows)
+2 parents: column
+3 parents: row
+4 parents: column
+etc.
+
+*      - zero parents, holder of rows
+  RowA     - 1 parent
+    Cola   - 2 parents
+      RowB - 3 parents
+
+  Even number of parents? You're a column
+  Odd number of parents? You're a row
+
+Example data structures:
+
+[]               - empty list of *rows*
+
+[X, Y]           - windows X and Y are both their own rows
+
+                 +---+
+		 | X |
+		 +---+
+		 | Y |
+		 +---+
+
+[X, [Y, Z]]      window X is a row,
+                 windows Y and Z are columns in the 2nd row
+		   
+		 +-------+
+		 |   X   |
+		 +---+---|
+		 | Y | Z |
+		 +---+---+
+
+[[X, Y], [A, B]  windows X,Y are columns in the top row
+                 windows A,B are columns in the bottom row
+
+		 +-----+---+
+		 |  X  | Y | Does not have to be a grid.
+		 +---+-+---+ The columns in each row can be
+		 | A |  B  | of arbitrary width
+		 +---+-+---+
+
+[[X, Y, Z], A]   +---+---+-----+  Z has diff width
+                 | X | Y |  Z  |
+		 +---+---+-----+
+		 |      A      |
+		 +-------------+
+
+[[[X, Y], Z], A] +---+---+  Rows X,Z in colums XY,Z
+                 | X |   |  in rows [XY,Z],A
+                 +---+ Z |
+                 | Y |   |  RowA
+                 +---+---+    Cola
+                 |   A   |      RowB - X
+                 +-------+      RowC - Y
+		              Colb   - Z
+			    RowD     - A
+
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-23   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Could we just do this with math?
+- How do we know who gets our space when we close?
+  - left/top sibling
+  - everything collapse back to its parent
+       OR
+    parents reclaim their children's space when the last
+    child dies, otherwise, siblings reclaim their siblings'
+    space when they die.
+
+Reclaiming children & collapsing unecessary rows/columns
+
+  - 1st diagram row: tree diagram
+  - 2nd diagram row: recursive alternating (row,col) list representation
+  - 3rd diagram row: 2D window diagram
+
+     Step 1                Step 2                 Step 3
+==============================================================
+
+  1. RowA                  RowA                   RowA - X
+       Cola - X              Cola - X
+       Colb                    RowC - Z
+         RowB - Y          ----OR------
+         RowC - Z          RowA
+                             Cola - X
+                             Colb - Z
+
+  2. [[X, [Y,Z]]]           [[X,[Z]]              [X]
+           		    OR
+                            [[X, Z]]
+
+  3. +--+---+              +---+---+              +---+---+
+     |  | Y |              |   |   |              |       |
+     |X +---+  --Y-dies--> | X | Z | --Z-dies-->  |   X   |
+     |  | Z |              |   |   |              |       |
+     +--+---+              +---+---+              +---+---+
+
+                           Z reclaims             X reclaims
+                           sibling Y's            child Z's
+                           space                  space
+
+                              AND (?)                OR
+
+                           The rows for           Did Z become
+                           Z and Y disappear      a _sibling_
+                           and Y becomes a        of X when it
+                           a column?              was the only
+                                                  row left?
+
+Use file-tree style diagrams to lay out rows and columns
+
+*                 *                  *
+| Row A           | Row A            | Row A
+  | Col a           | Col a            | Col a
+  | Col b           | Col b            | Col b
+    | Row B           | Row B            | Row B
+  | col c           | col c            | col c
+    | Row C           | Row C x
+       | col d (window)
+       | col e (window)
+    | Row D x
+      | col f
+
+    Window
+---------------   [Window, [ Window , [ Window , Window] ]]
+Window | Window
+
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-22   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+If we want to "shift move" a window to the extreme left or right, then we need
+to wrap the current window tree in a row, and add a column.
+
+  If we want to "shift move" a window to the extreme top or bottom, then we can
+  simply add a new row at the beginning of the top list of rows, or at the end
+  of the top list of rows.
+
+  "shift move" is when you do C-w, [HJKL] e.g.
+
+    X* |                  |   |
+    ---| Z  + C-w,L =   Y | Z | X
+     Y |                  |   |
+
+    i.e. current window X has moved to the right of all other windows, leaving
+    Y to take up the entire column.
+
+  We can model this as
+
+  one row: [[[X, Y], Z]] => [[Y, Z, X]]
+
+   X
+  ---  ->  Y | X       Two rows goes down to one row with two columns
+   Y
+
+  Move X from a top row to a right-hand column:
+
+  two rows: [            [             -- all rows
+             [ X ],   ->  [            -- row 1
+             [ Y ]         [           -- col 1-1
+            ]               [_, Y]     -- row 1-1-1, row 1-1-2
+                           ],
+                           [ X ]       -- col 1-2
+                          ]
+                         ]
+
+    1. wrap the existing two rows in a new row (row 1) and column (col 1-1)
+       Now we have Row 1, Column 1-1, Row 1-1-1 (X), Row 1-1-2 (Y)
+    2. add a second column to the new top-level row 1
+       Now we have Row 1, Columns 1-1 and 1-2, and col 1-1 has rows 1-1-1 and 1-1-2
+    3. move X to the new column
+       Now we have Row 1, Cols 1-1 (Y) 1-2 (X)
+
+    I don't know of a non-confusing way to write this
+
+    +---+       +-------+-----+   We wrap the existing two rows with a new top-level
+    | X |       | +---+ |     |   row with two columns
+    +---+  -->  | | X | |     |
+    | Y |       | +---+ |     |
+    +---+       | | Y | |     |
+                | +---+ |     |
+                +-------+-----+
+
+   +-------+-----+
+   | +---+ |     |  We move X over to the new top level right-hand column
+   | | _ | |     |
+   | +---+ |  X  |
+   | | Y | |     |
+   | +---+ |     |
+   +-------+-----+
+
+   +-------+-----+
+   |       |     |  We simplify the two rows in column 1-1 down to just
+   |       |     |  single window.
+   |   Y   |  X  |
+   |       |     |  (1-1 refers to row 1, column 1; it's not a cartesian
+   |       |     |   coordinate, it's a tree index.)
+   +-------+-----+
+
+       Three rows would the same, except we wouldn't simplify 1-1-2 down to 1-1
+       (i.e. row 1, col 1, row 1 down to row 1 col 1)
+
+   "Shift" Moves:
+   1. Move row window to right hand column
+   2. Move row window to left hand column
+   3. Move any window to top row
+   4. Move any window to bottom row
+
+   Other than shift moves, we only have window splits, rotates, and swaps.
+   - rotate is switching two neighbour windows in the same column or same row
+   - swap is swapping two arbitrary windows
+
+[] -> [[[x]]]
+   -> [[[x]]]
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-21   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
@@ -28,9 +258,9 @@ Window organization & borders:
 
 If you go from   X   to   Y |    you've gone from 3 rows, to 1 row with 2 columns,
                 ---      ---| X
-		 Y        Z |
-		---
-		 Z
+                 Y        Z |
+                ---
+                 Z
 
 and rows 2 and 3 now part of column 1 of row 1.
 
@@ -53,7 +283,7 @@ List of rows, of which there are three
    |  |  |      / \     \                 / \
    X  Y  Z     R   R     X               Y   Z
                |   |
-	       Y   Z
+               Y   Z
 
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-20   ┃

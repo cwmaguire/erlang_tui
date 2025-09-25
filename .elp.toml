@@ -1,7 +1,10 @@
 # .elp.toml
 [build_info]
-apps = [{ name = "cm_shell", dir = "." }]
-deps = "deps/*"
+file = "build_info.json"
+deps = "_build/default/lib/*"
+
+[eqwalizer]
+enable_all = true
 
 [rebar]
 profile = "test"

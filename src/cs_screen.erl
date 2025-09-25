@@ -1,6 +1,7 @@
 -module(cs_screen).
 -behaviour(gen_server).
 
+-include("cs.hrl").
 %% the enter screen is called "screen"
 %% a screen has sections called "windows"
 %%
@@ -32,19 +33,14 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([rotate_right/2]).
+
 -record(state, {windows = [],
                 borders = [],
                 focused_window_id,
                 next_id = 1,
                 h = 0,
                 w = 0}).
-
--record(window, {id,
-                 pid,
-                 x = 0,
-                 y = 0,
-                 h = 0,
-                 w = 0}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -126,3 +122,30 @@ split_vertical( State = #state{windows = Windows,
     State#state{windows = NewWindows,
                 borders = NewBorders,
                 focused_window_id = Id}.
+
+rotate_right(_WindowId, Windows = []) ->
+    Windows;
+rotate_right(WindowId, Windows) ->
+    rotate_right(WindowId, Windows, []).
+
+rotate_right(WindowId,
+             [List| Rest],
+             Acc) when is_list(List) ->
+    RotatedSubTree = rotate_right(WindowId, List, []),
+    NewAcc = Acc ++ [RotatedSubTree],
+    rotate_right(WindowId, Rest, NewAcc);
+rotate_right(WindowId,
+             [W1 = #window{id = WindowId}, X | Rest],
+             Acc) ->
+    Acc ++ [X, W1 | Rest];
+rotate_right(WindowId, [Window = #window{} | Rest], Acc) ->
+    NewAcc = Acc ++ [Window],
+    rotate_right(WindowId, Rest, NewAcc);
+rotate_right(_WindowId, [], Acc) ->
+    Acc.
+
+
+% []
+% [x]
+% [[x, y]]
+% [[[x, y], z][a]]
