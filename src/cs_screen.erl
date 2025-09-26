@@ -33,6 +33,7 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([split_window/4]).
 -export([rotate_right/2]).
 
 -record(state, {windows = [],
@@ -129,11 +130,18 @@ rotate_right(WindowId, Windows) ->
     rotate_right(WindowId, Windows, []).
 
 rotate_right(WindowId,
+             % maybe rows, maybe columns
              [List| Rest],
              Acc) when is_list(List) ->
     RotatedSubTree = rotate_right(WindowId, List, []),
     NewAcc = Acc ++ [RotatedSubTree],
     rotate_right(WindowId, Rest, NewAcc);
+% single window rows can swap with other rows
+rotate_right(WindowId,
+             [_SingleWindowRow = [W1 = #window{id = WindowId}], X | Rest],
+             Acc) ->
+    Acc ++ [X, W1 | Rest];
+% windows can switch with other columns
 rotate_right(WindowId,
              [W1 = #window{id = WindowId}, X | Rest],
              Acc) ->
@@ -144,8 +152,140 @@ rotate_right(WindowId, [Window = #window{} | Rest], Acc) ->
 rotate_right(_WindowId, [], Acc) ->
     Acc.
 
+split_window(WindowId, NextId, Windows, Dir) ->
+     split_window(WindowId, NextId, Windows, rows, Dir, []).
 
-% []
-% [x]
-% [[x, y]]
-% [[[x, y], z][a]]
+% [x, y]
+% [[x], [y]]
+
+split_window(WindowId,
+             NextId,
+             [Row | Rows],
+             rows,
+             Dir,
+             Acc) ->
+    NewRow =
+        split_window(WindowId,
+                     NextId,
+                     Row,
+                     columns,
+                     Dir,
+                     Acc),
+      
+    split_window(WindowId,
+                 NextId,
+                 Rows,
+                 rows,
+                 Dir,
+                 Acc ++ NewRow);
+
+split_window(WindowId,
+             NextId,
+             [W1 = #window{id = WindowId} | Rest],
+             columns,
+             Dir,
+             Acc) ->
+    W = #window{id = NextId},
+    case Dir of 
+        vertical ->
+            % [[[[x], [y]], z]]     [[[[x, *], [y]], z]]
+            % +---+---+             +---+---+---+
+            % | x |   |             | x | * |   |
+            % +---+ z +     ->      +---+---+ z |
+            % | y |   |             |   y   |   |
+            % +-------+             +-------+---+
+            Acc ++ [W1, W] ++ Rest;
+
+        horizontal ->
+            % [[x, z]]     [[[[x], [*]], z]]
+            % +---+---+         +---+---+
+            % | x | z |         | x |   |
+            % +---+---+     ->  +---+ z |
+            %                   | * |   |
+            %                   +---+---+
+            Acc ++ [[[W1], [W]]] ++ Rest
+    end;
+
+% x is in a row (R) with one column (C2).
+% That row (R) is in a column (C1).
+% Since the row is only 1 column wide, and we're inserting
+% another column below, we can just add another row to the
+% column
+%   C1
+%    R                
+%     C2
+% [[[[x],[y]],z]]    
+% +---+---+          
+% | x |   |          
+% +---+ z |          
+% | y |   |          
+% +---+---+          
+split_window(WindowId,
+             NextId,
+             [ [[W1 = #window{id = WindowId}]] | Rest],
+             columns,
+             horizontal,
+             Acc) ->
+    W = #window{id = NextId},
+    Acc ++ [[[W1], [W]]] ++ Rest;
+
+% 
+
+%  RCRC,C  RC   C
+% [[[[x,a],[y]],z]]
+% +---+---+---+
+% | x | a |   |
+% +---+---+ z |
+% |   y   |   |
+% +---+---+---+
+
+
+
+split_window(WindowId,
+             NextId,
+             [List | Rest],
+             Level,
+             Dir,
+             Acc) when is_list(List) ->
+    NextLevel =
+        case Level of
+            row ->
+                col;
+            _ ->
+                row
+        end,
+    NewList = split_window(WindowId,
+                           NextId,
+                           List,
+                           NextLevel,
+                           Dir,
+                           []),
+    split_window(WindowId,
+                 NextId,
+                 Rest,
+                 Level,
+                 Dir,
+                 Acc ++ [NewList]);
+split_window(WindowId,
+             NextId,
+             [W | Rest],
+             Level,
+             Dir,
+             Acc) ->
+    split_window(WindowId,
+                 NextId,
+                 Rest,
+                 Level,
+                 Dir,
+                 Acc ++ [W]);
+split_window(_WindowId,
+             _NextId,
+             [],
+             _Level,
+             _Dir,
+             Acc) ->
+    Acc.
+
+% [Before | Focused | New | Rest]
+%
+% [X] -> [X, Y]

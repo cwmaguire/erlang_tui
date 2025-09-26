@@ -1,4 +1,103 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-25   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Can we store implicit rows?
+
+i.e. [x, y]
+
+X and Y are both windows, but they are implicitly in rows because the
+outermost list is a list of _rows_.
+
+[x, y] makes a rotation easy: [x, y] -> [y, x]
+
+However, when descending into tree, we need to know if we're in a row or a
+column.
+
+[[x, y], z]
+
+It feels like any list flips the orientation
+
+I'm thinking you can only rotate within a list.
+
+So this [[x]] doesn't make any sense: it's a row, with a single column, ... I
+guess it does make sense, it's just redundant ... no, [x] would be a row of one
+column, as soon as we add the second list we're switching from columns to rows,
+so that's a single column of 1 row. I guess it could just go on forever:
+[[[x]]] row of 1 col of 1 row of 1 col
+
+i.e.
+
+[     ] row
+ [   ]  col 1 is a row
+  [ ]   col 1 is a row
+   x    x
+
+Can I get by with only rows in lists?
+No, only columns in lists: a row _is_ a list of columns
+
++---+
+| x |  [x]
++---+
+
++---+---+
+| x | y |  [x, y]
++---+---+
+
++---+---+
+| x |   |  [*, y] - two columns: * and y 
++---+ y |         - how do we represent two rows as a column?
+| z |   |
++---+---+
+
+          [[x],[z], y] -> [x, z, y]
+
+          i.e. single column + single colum + single column
+
+Let's redraw this without collapsing anything
+
++-------------+ 1 row, with two columns
+| +---+ +---+ | First column has two rows
+| | x | |   | | 
+| +---+ | y | | There has to be a way for a column to have rows
+| | z | |   | |
+| +---+ +---+ | However, if only *only* rows can be lists, how can
++-------------+ a column _contain_ anything?
+
+Also, how do you have a list of rows?
+
+You *have* to have lists of rows and lists of columns. Of course, a list of rows
+is a column, but you have to start somewhere. I've arbitrarily decided to start
+with rows as the top level.
+
+I guess *all* rows and all columns must be lists. Well, no, because then you
+have the infinite problem in reverse: 1 row with 1 column, but that column has a
+row, and that row has a column: [[[[[[[x]]]]]]]
+
+Maybe a better rule would be: "Only columns can be *outside* of a list" ... that
+doesn't make any sense. *everything* is in a list.
+
+How about: "Only columns can be bare."
+
+[[x]] - x doesn't need a list, because it's a column, but the row it's in has to
+be a list.
+
+Or, "Windows can be columns. Windows can never be rows."
+
+So, [x, y] doesn't work. It has to be [[x], [y]]: two rows of one column each.
+
+    % +---+---+  Columns have to be able to be lists, or windows.
+    % |   | y |
+    % | x +---+  [                         ] - list of rows
+    % |   | z |    [                     ]   - one row
+    % +---+---+      x, [              ]     - 2 columns: x and [...]: columns *can* be lists
+    %                     [   ], [   ]       - 2 rows in the column: rows *must* be lists
+    %                       y      z         - 2 windows, as columns
+
+If I go into a row, it must be columns, which are windows or lists
+If I go into a column, it *must* be lists, and only lists
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-24   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
