@@ -14,6 +14,8 @@ all() ->
     [test_rotate_horizontal,
      test_split_window].
 
+% all() -> [test_split_window].
+
 test_rotate_horizontal(_Config) ->
     Wx = #window{id = x},
     Wy = #window{id = y},
@@ -138,16 +140,10 @@ test_split_window(_Config) ->
     % | x | z | -> | x | y | z |
     % +---+---+    +---+---+---+
 
-    dbg:tracer(),
-    dbg:p(all, c),
-    dbg:tpl(cs_screen, split_window, 6, cx),
-
     W5 = [[Wx, Wz]],
     E5 = [[Wx, Wy, Wz]],
     A5 = cs_screen:split_window(x, y, W5, vertical),
     ?assertEqual(E5, A5),
-
-    dbg:stop(),
 
     % [x,z]     -> [[[x,y], z]]
 
@@ -170,16 +166,21 @@ test_split_window(_Config) ->
     % | z |   |         |   z   |   |
     % +---+---+         +-------+---+
 
-    % dbg:tracer(),
-    % dbg:p(all, c),
-    % dbg:tpl(cs_screen, split_window, 6, cx),
+    dbg:tracer(process, {fun convert_trace/2, 0}),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            split_window,
+            6,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]),
 
     W7 = [[[[Wx], [Wz]], Wa]],
     E7 = [[[[Wx, Wy], [Wz]], Wa]],
     A7 = cs_screen:split_window(x, y, W7, vertical),
     ?assertEqual(E7, A7),
 
-    % dbg:stop(),
+    dbg:stop(),
 
     % [[[x,z], a]] ->   [[[[x, y], z], a]]
     %
@@ -195,3 +196,85 @@ test_split_window(_Config) ->
     E8 = [[[[Wx], [Wy], [Wz]], Wa]],
     A8 = cs_screen:split_window(x, y, W8, horizontal),
     ?assertEqual(E8, A8).
+
+
+convert_trace({trace, _Pid, return_from, MFA, Return},
+            Indent) ->
+                Unindented = Indent - 4,
+                Spaces = indent(Unindented),
+                Converted = convert_windows(Return, []),
+                ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]),
+                Unindented;
+convert_trace({trace, _Pid, call, {M, F, Args}, MFA_Path_Line},
+            Indent) ->
+                Spaces = indent(Indent),
+                {_, _, _, {Path, Line}} = MFA_Path_Line,
+                BaseName = filename:basename(Path, ".erl"),
+                [_, _, Windows, Orientation, Direction, Acc] = Args,
+                Converted = convert_windows(Windows, []),
+                AccConverted = convert_windows(Acc, []),
+                ct:pal("~s~p:~p(~p, ~p, ~p, ~p) [~p:~p]~n",
+                       [Spaces,
+                        M,
+                        F,
+                        Converted,
+                        Orientation,
+                        Direction,
+                        AccConverted,
+                        BaseName,
+                        Line]),
+                Indent + 4;
+convert_trace(Other,
+            no_state) ->
+    ct:pal("Got other: ~p~n", [Other]),
+    no_state.
+
+-define(SPACE, $ ).
+
+indent(N) ->
+    indent(N, []).
+
+indent(0, Spaces) ->
+    Spaces;
+indent(N, Spaces) ->
+    indent(N - 1, [?SPACE | Spaces]).
+
+convert_windows([#window{id = Id} | Rest], Acc) ->
+    convert_windows(Rest, Acc ++ [Id]);
+convert_windows([List | Rest], Acc) ->
+    Converted = convert_windows(List, []),
+    convert_windows(Rest, Acc ++ [Converted]);
+convert_windows(#window{id = Id}, Acc) ->
+    Acc ++ [Id];
+convert_windows([], Acc) ->
+    Acc.
+
+% {
+%   trace,
+%   0.342.0>,call,
+%   {cs_screen,
+%    split_window,
+%    [x,y,[],rows,vertical,
+%                             [[[[{window,x,undefined,0,0,0,0},
+%                                 {window,y,undefined,0,0,0,0}],
+%                                [[{window,x,undefined,0,0,0,0},
+%                                  {window,y,undefined,0,0,0,0}],
+%                                 {window,z,undefined,0,0,0,0}]],
+%                               {window,a,undefined,0,0,0,0}]]]
+%   },
+%   {
+%    window_tree_SUITE,test_split_window,1,
+%    {"Module path", 178}
+%   }
+% }
+
+% {trace,
+%  <0.342.0>,
+%  return_from,
+%  {cs_screen,split_window,6},
+%  [
+%   [[[{window,x,undefined,0,0,0,0},{window,y,undefined,0,0,0,0}],
+%                  [[{window,x,undefined,0,0,0,0},{window,y,undefined,0,0,0,0}],
+%                   {window,z,undefined,0,0,0,0}]],
+%                 {window,a,undefined,0,0,0,0}]
+%  ]}

@@ -160,6 +160,15 @@ split_window(WindowId, NextId, Windows, Dir) ->
 
 split_window(WindowId,
              NextId,
+             [ [W1 = #window{id = WindowId}] | Rest],
+             rows,
+             horizontal,
+             Acc) ->
+    W = #window{id = NextId},
+    Acc ++ [[W1], [W]] ++ Rest;
+
+split_window(WindowId,
+             NextId,
              [Row | Rows],
              rows,
              Dir,
@@ -170,14 +179,37 @@ split_window(WindowId,
                      Row,
                      columns,
                      Dir,
-                     Acc),
+                     []),
       
     split_window(WindowId,
                  NextId,
                  Rows,
                  rows,
                  Dir,
-                 Acc ++ NewRow);
+                 Acc ++ [NewRow]);
+
+% x is in a row (R) with one column (C2).
+% That row (R) is in a column (C1).
+% Since the row is only 1 column wide, and we're inserting
+% another column below, we can just add another row to the
+% column
+%   C1
+%    R                
+%     C2
+% [[[[x],[y]],z]]  There must be at least two rows in the  
+% +---+---+        x,y column or else it would be
+% | x |   |        [[[[x]]]], which doesn't make sense.
+% +---+ z |        It would be simplified down to [[x]]
+% | y |   |          
+% +---+---+          
+split_window(WindowId,
+             NextId,
+             [ [[W1 = #window{id = WindowId}] | RestR] | RestC],
+             columns,
+             horizontal,
+             Acc) ->
+    W = #window{id = NextId},
+    Acc ++ [[[W1], [W] | RestR]] ++ RestC;
 
 split_window(WindowId,
              NextId,
@@ -206,30 +238,18 @@ split_window(WindowId,
             Acc ++ [[[W1], [W]]] ++ Rest
     end;
 
-% x is in a row (R) with one column (C2).
-% That row (R) is in a column (C1).
-% Since the row is only 1 column wide, and we're inserting
-% another column below, we can just add another row to the
-% column
-%   C1
-%    R                
-%     C2
-% [[[[x],[y]],z]]    
-% +---+---+          
-% | x |   |          
-% +---+ z |          
-% | y |   |          
-% +---+---+          
 split_window(WindowId,
              NextId,
-             [ [[W1 = #window{id = WindowId}]] | Rest],
+             [W = #window{} | Rest],
              columns,
-             horizontal,
+             Dir,
              Acc) ->
-    W = #window{id = NextId},
-    Acc ++ [[[W1], [W]]] ++ Rest;
-
-% 
+    split_window(WindowId,
+                 NextId,
+                 Rest,
+                 columns,
+                 Dir,
+                 Acc ++ [W]);
 
 %  RCRC,C  RC   C
 % [[[[x,a],[y]],z]]
@@ -239,53 +259,28 @@ split_window(WindowId,
 % |   y   |   |
 % +---+---+---+
 
-
-
 split_window(WindowId,
              NextId,
-             [List | Rest],
-             Level,
+             [ColumnRows | Rest],
+             columns,
              Dir,
-             Acc) when is_list(List) ->
-    NextLevel =
-        case Level of
-            row ->
-                col;
-            _ ->
-                row
-        end,
-    NewList = split_window(WindowId,
+             Acc) when is_list(ColumnRows) ->
+    NewRows = split_window(WindowId,
                            NextId,
-                           List,
-                           NextLevel,
+                           ColumnRows,
+                           rows,
                            Dir,
                            []),
     split_window(WindowId,
                  NextId,
                  Rest,
-                 Level,
+                 columns,
                  Dir,
-                 Acc ++ [NewList]);
-split_window(WindowId,
-             NextId,
-             [W | Rest],
-             Level,
-             Dir,
-             Acc) ->
-    split_window(WindowId,
-                 NextId,
-                 Rest,
-                 Level,
-                 Dir,
-                 Acc ++ [W]);
+                 Acc ++ [NewRows]);
 split_window(_WindowId,
              _NextId,
              [],
-             _Level,
+             _ListType,
              _Dir,
              Acc) ->
     Acc.
-
-% [Before | Focused | New | Rest]
-%
-% [X] -> [X, Y]
