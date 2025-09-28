@@ -7,16 +7,16 @@
 
 -export([all/0]).
 
--export([test_rotate_horizontal/1]).
+-export([test_rotate_right_down/1]).
 -export([test_split_window/1]).
 
 all() ->
-    [test_rotate_horizontal,
+    [test_rotate_right_down,
      test_split_window].
 
 % all() -> [test_split_window].
 
-test_rotate_horizontal(_Config) ->
+test_rotate_right_down(_Config) ->
     Wx = #window{id = x},
     Wy = #window{id = y},
     Wz = #window{id = z},
@@ -28,10 +28,24 @@ test_rotate_horizontal(_Config) ->
     A1 = cs_screen:rotate_right(x, W1),
     ?assertEqual(E1, A1),
 
+    State = {fun rotate_call/6,
+             fun rotate_return/3,
+             0},
+    dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            rotate_right,
+            4,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]),
+
     W2 = [[Wx]],
     E2 = [[Wx]],
     A2 = cs_screen:rotate_right(x, W2),
     ?assertEqual(E2, A2),
+
+    dbg:stop(),
 
     W3 = [[Wx, Wy]],
     E3 = [[Wy, Wx]],
@@ -84,15 +98,15 @@ test_rotate_horizontal(_Config) ->
     % | x +---+ -> +---+ x |
     % |   | z |    | z |   |
     % +---+---+    +---+---+
-    
+
     W12 = [[Wx, [[Wy], [Wz]]]],
     E12 = [[[[Wy], [Wz]], Wx]],
     A12 = cs_screen:rotate_right(x, W12),
     ?assertEqual(E12, A12),
 
-    %                          y   
+    %                          y
     % x is in the same row as --- so they can switch
-    %                          z 
+    %                          z
     % +---+---+    +---+---+
     % |   | y |    | y |   |
     % | x +---+ -> +---+ x |
@@ -166,7 +180,8 @@ test_split_window(_Config) ->
     % | z |   |         |   z   |   |
     % +---+---+         +-------+---+
 
-    dbg:tracer(process, {fun convert_trace/2, 0}),
+    State = {fun split_call/6, fun split_return/3, 0},
+    dbg:tracer(process, {fun convert_trace/2, State}),
     dbg:p(all, c),
     dbg:tpl(cs_screen,
             split_window,
@@ -197,37 +212,73 @@ test_split_window(_Config) ->
     A8 = cs_screen:split_window(x, y, W8, horizontal),
     ?assertEqual(E8, A8).
 
+rotate_call(Spaces,
+            M,
+            F,
+            BaseName,
+            Line,
+            [_, Windows, Orientation, Acc]) ->
+    Converted = convert_windows(Windows, []),
+    AccConverted = convert_windows(Acc, []),
+
+    ct:pal("~s~p:~p(~p, ~p, ~p) [~p:~p]~n",
+           [Spaces,
+            M,
+            F,
+            Converted,
+            Orientation,
+            AccConverted,
+            BaseName,
+            Line]).
+
+%% same as split return
+rotate_return(Spaces, MFA, Return) ->
+    Converted = convert_windows(Return, []),
+    ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
+
+split_call(Spaces,
+           M,
+           F,
+           BaseName,
+           Line,
+           [_, _, Windows, Orientation, Direction, Acc]) ->
+    Converted = convert_windows(Windows, []),
+    AccConverted = convert_windows(Acc, []),
+
+    ct:pal("~s~p:~p(~p, ~p, ~p, ~p) [~p:~p]~n",
+           [Spaces,
+            M,
+            F,
+            Converted,
+            Orientation,
+            Direction,
+            AccConverted,
+            BaseName,
+            Line]).
+
+split_return(Spaces, MFA, Return) ->
+    Converted = convert_windows(Return, []),
+    ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
+
 
 convert_trace({trace, _Pid, return_from, MFA, Return},
-            Indent) ->
-                Unindented = Indent - 4,
-                Spaces = indent(Unindented),
-                Converted = convert_windows(Return, []),
-                ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]),
-                Unindented;
-convert_trace({trace, _Pid, call, {M, F, Args}, MFA_Path_Line},
-            Indent) ->
-                Spaces = indent(Indent),
-                {_, _, _, {Path, Line}} = MFA_Path_Line,
-                BaseName = filename:basename(Path, ".erl"),
-                [_, _, Windows, Orientation, Direction, Acc] = Args,
-                Converted = convert_windows(Windows, []),
-                AccConverted = convert_windows(Acc, []),
-                ct:pal("~s~p:~p(~p, ~p, ~p, ~p) [~p:~p]~n",
-                       [Spaces,
-                        M,
-                        F,
-                        Converted,
-                        Orientation,
-                        Direction,
-                        AccConverted,
-                        BaseName,
-                        Line]),
-                Indent + 4;
-convert_trace(Other,
-            no_state) ->
-    ct:pal("Got other: ~p~n", [Other]),
-    no_state.
+              {CallFun, ReturnFun, Indent}) ->
+    Unindented = Indent - 4,
+    Spaces = indent(Unindented),
+    ReturnFun(Spaces, MFA, Return),
+    {CallFun, ReturnFun, Unindented};
+convert_trace({trace,
+               _Pid,
+               call,
+               {M, F, Args},
+               MFA_Path_Line},
+              {CallFun, ReturnFun, Indent}) ->
+    ct:pal("Convert trace", []),
+    Spaces = indent(Indent),
+    {_, _, _, {Path, Line}} = MFA_Path_Line,
+    BaseName = filename:basename(Path, ".erl"),
+    CallFun(Spaces, M, F, BaseName, Line, Args),
+    {CallFun, ReturnFun, Indent + 4}.
 
 -define(SPACE, $ ).
 

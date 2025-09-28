@@ -1,4 +1,61 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-27   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+When we rotate, do we do column first, or row first.
+
+[[x, y]] -> [[y, x]]            swap columns
+
+[[x], [y]] -> [[y], [x]]        swap rows
+
+[[x, y], [z]] -> [[y, x], [z]]  swap columns
+
+We only swap single column rows
+
+There's no point in have a column be a list unless it holds rows
+
++---+---+   [[[[x], [y]], z]]
+| x |   |   C               C
++---+ z |    R             R
+| y |   |     C        C, W
++---+---+      R R, R R     <- nothing but a list of rows
+                W    W
+
+You can't have a column with a column inside.
+Colums are either a window or a list of rows.
+
+If you don't have another column after a window you want to rotate,
+should you rotate the row down?
+
+  We already handle the case where a row only has a single column.
+
+  So ... you can't rotate a column outside of it's row.
+
+  +---+---+
+  | y | x | rotate x -> nowhere to rotate to
+  +---+---+ right
+  |   z   |
+  +---+---+ We _could_ add x to the z row, but that would be
+            a different command.
+
+  What about a generic swap? How would we handle swapping x with
+  whatever is beside it, regardless of ... first right, and then
+  left if there's nothing to the right.
+
+  +---+---+   +---+---+
+  | y | x |   | x | y |
+  +---+---+   +---+---+
+  |   z   |   |   z   |
+  +---+---+   +---+---+
+
+  Maybe if swap right doesn't change anything, we do swap left?
+  This seems plausible.
+
+    We could either check if Windows == swap_right(Windows) or have
+    swap_right(Windows) return true/false, indicated whether a swap
+    was completed.
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-25   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

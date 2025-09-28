@@ -92,6 +92,7 @@ create_first_window(State = #state{next_id = Id}, H, W) ->
                 windows = [Window],
                 next_id = Id + 1}.
 
+%% TODO move to split/4
 split_vertical( State = #state{windows = Windows,
                                borders = Borders,
                                focused_window_id = FocusId,
@@ -127,29 +128,50 @@ split_vertical( State = #state{windows = Windows,
 rotate_right(_WindowId, Windows = []) ->
     Windows;
 rotate_right(WindowId, Windows) ->
-    rotate_right(WindowId, Windows, []).
+    rotate_right(WindowId, Windows, rows, []).
+
 
 rotate_right(WindowId,
+             [Row1 = [#window{id = WindowId}], Row2 | Rows],
+             rows,
+             RowAcc1) ->
+    RowAcc1 ++ [Row2, Row1 | Rows];
+rotate_right(WindowId,
              % maybe rows, maybe columns
-             [List| Rest],
-             Acc) when is_list(List) ->
-    RotatedSubTree = rotate_right(WindowId, List, []),
-    NewAcc = Acc ++ [RotatedSubTree],
-    rotate_right(WindowId, Rest, NewAcc);
-% single window rows can swap with other rows
+             [Row | Rows],
+             rows,
+             RowAcc1) ->
+    RotatedRow = rotate_right(WindowId,
+                              Row,
+                              columns,
+                              []),
+    RowAcc2 = RowAcc1 ++ [RotatedRow],
+    rotate_right(WindowId, Rows, rows, RowAcc2);
 rotate_right(WindowId,
-             [_SingleWindowRow = [W1 = #window{id = WindowId}], X | Rest],
+             [W1 = #window{id = WindowId}, Col | Rest],
+             columns,
              Acc) ->
-    Acc ++ [X, W1 | Rest];
-% windows can switch with other columns
+    Acc ++ [Col, W1 | Rest];
 rotate_right(WindowId,
-             [W1 = #window{id = WindowId}, X | Rest],
+             [W1 = #window{} | Rest],
+             columns,
+             Acc1) ->
+    Acc2 = Acc1 ++ [W1],
+    rotate_right(WindowId, Rest, columns, Acc2);
+rotate_right(WindowId,
+             [Row | Rest],
+             columns,
+             Acc1) ->
+    RotatedRow = rotate_right(WindowId,
+                              Row,
+                              rows,
+                              []),
+    Acc2 = Acc1 ++ [RotatedRow],
+    rotate_right(WindowId, Rest, columns, Acc2);
+rotate_right(_WindowId,
+             [],
+             _row_or_column,
              Acc) ->
-    Acc ++ [X, W1 | Rest];
-rotate_right(WindowId, [Window = #window{} | Rest], Acc) ->
-    NewAcc = Acc ++ [Window],
-    rotate_right(WindowId, Rest, NewAcc);
-rotate_right(_WindowId, [], Acc) ->
     Acc.
 
 split_window(WindowId, NextId, Windows, Dir) ->
