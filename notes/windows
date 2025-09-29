@@ -1,4 +1,86 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-28   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Layout windows:
+
++---+
+|   |  100%
++---+
+
++---+---+
+|   |   | 50% | 50%
++---+---+
+
++---+---+
+|   |   | 50% | 50%
++---+---+    ---
+|       |    50%
++---+---+
+
++---+---+---+
+|   |   |   |  66%|33% -> 33%|33% 50%
++---+---+   |    100%             ---
+|       |   |                     50%
++---+---+---+
+
+    +---+---+---+ Rows come first. Calculate row layout.
+    |   |   |   | Total rows (3) or top level rows (2)?
+R1  +---+---+   |
+    |       |   | Should R2 get 50% or 33%?
+    +---+---+---+
+    |   |   |   | If we split R1 into R2 first, then it would
+R2  |   |   |   | make sense for R2 to have 50%.
+    |   |   |   | You *have* to split R1 first, to get this
+    +---+---+---+ arrangement
+
+  1           2            3              4                5                6                7
++---+     +---+---+    +---+---+    +---+---+---+    +---+---+---+    +---+---+---+    +---+---+---+
+|   |  -> |   |   | -> |   |   | -> |   |   |   | -> |   |   |   | -> |   |   |   | -> |   |   |   |
++---+     +---+---+    +---+ b |    +---+---+   |    +---+---+   |    +---+---+   |    +---+---+   |
+                       |   |   |    |   a   |   |    |       |   |    |       |   |    |       +---+
+                       +---+---+    +---+---+---+    +---+---+   |    +---+---+   |    +---+---+   |
+                                                     |       |   |    |   |   |   |    |   |   |   |
+                                                     +-------+---+    +-------+---+    +-------+---+
+
+The ratios aren't right. 4->5 would split {a} in half, so 5 would look
+different.
+
+      4                 5
++---+---+---+     +---+---+---+
+|   |   |   |     |   |   |   |
++---+---+   |     |   |   |   |
+|   a   |   | ->  +---+---+   |
++---+---+---+     |   a   |   |
+                  +---+---+   |
+		  |       |   |
+		  +---+---+---+
+
+Oh, 4 wouldn't be right either, since {b} would still take up 50%.
+
+I think I'll just spread the columns, then the rows, etc. I'll follow the tree
+down and distribute the window space as I go. No, we start with a single column
+and a list of rows, so we'll do rows first.
+
+We can never run out of divisible space, theoretically, because screens could be
+infinitely large, but practically, we're only going to have so many screen
+characters, and and integer percentage cols/rows should be enough. Maybe.
+
+   c1     c2
++---+---+---+  100,100 -> 1 row -> 100,100     -- recurse into columsn
+|   |   |   |    100,100 -> 2 cols -> 100,50%
+|   |   |   |      100,50 -> 3 rows -> 33,50
++---+---+   |        33,50 -> 2 cols -> 33,25
+|   a   |   |          33,25 -> win -> 33,25 
++---+---+   |          33,25 -> win -> 33,25 
+|       |   |        33,50 -> 1 row -> 33,50
++---+---+---+          33,50 -> win -> 33,50
+                     33,50 -> 1 row -> 33,50
+		       33,50 -> win -> 33,50
+                   
+                   100,50 -> win -> 100,50
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-27   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

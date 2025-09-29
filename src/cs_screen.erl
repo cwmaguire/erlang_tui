@@ -35,6 +35,7 @@
 
 -export([split_window/4]).
 -export([rotate_right/2]).
+-export([layout_windows/3]).
 
 -record(state, {windows = [],
                 borders = [],
@@ -306,3 +307,55 @@ split_window(_WindowId,
              _Dir,
              Acc) ->
     Acc.
+
+%% Having a single percentage doesn't work AT ALL.
+%% There are two percentages: height and width.
+%% Rows take up height percentages. Columns take up width percentages.
+
+% [[[[x],[y]],z],[a]]
+%
+% +---+---+
+% | x |   |
+% +---+ z |
+% | y |   |
+% +---+---+
+% |   a   |
+% +---+---+
+
+layout_windows(Rows, Height, Width) ->
+    N = length(Rows),
+    H = Height div N,
+    HR = Height rem N,
+    layout_windows(Rows, rows, H, HR, Width, 0, []).
+
+layout_windows([LastRow1], rows, H, HR, Width, 0, Acc) ->
+    N = length(LastRow1),
+    W = Width div N,
+    WR = Width rem N,
+    LastRow2 = layout_windows(LastRow1, cols, H + HR, 0, W, WR, []),
+    Acc ++ [LastRow2];
+
+layout_windows([Row | Rest], rows, H, HR, Width, _WR, Acc1) ->
+    N = length(Row),
+    W = Width div N,
+    WR = Width rem N,
+    Row2 = layout_windows(Row, cols, H, 0, W, WR, []),
+    Acc2 = Acc1 ++ [Row2],
+    layout_windows(Rest, rows, H, HR, Width, 0, Acc2);
+
+layout_windows([Win1 = #window{}], cols, H, _HR, W, WR, Acc) ->
+    Win2 = Win1#window{h = H, w = W + WR},
+    Acc ++ [Win2];
+
+layout_windows([Win1 = #window{} | Rest], cols, H, _HR, W, WR, Acc1) ->
+    Win2 = Win1#window{h = H, w = W},
+    Acc2 = Acc1 ++ [Win2],
+    layout_windows(Rest, cols, H, 0, W, WR, Acc2);
+
+layout_windows([Col], cols, H, _HR, W, WR, Acc) ->
+    Acc ++ [layout_windows(Col, H, W + WR)];
+
+layout_windows([Col | Rest], cols, H, _HR, W, WR, Acc1) ->
+    Acc2 = Acc1 ++ [layout_windows(Col, H, W)],
+    layout_windows(Rest, cols, H, 0, W, WR, Acc2).
+

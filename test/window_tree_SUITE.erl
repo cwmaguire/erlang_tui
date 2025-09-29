@@ -9,10 +9,20 @@
 
 -export([test_rotate_right_down/1]).
 -export([test_split_window/1]).
+-export([test_layout_windows/1]).
+
+-export([split_call/6]).
+-export([split_return/3]).
+-export([rotate_call/6]).
+-export([rotate_return/3]).
+-export([dbg_layout/0]).
+-export([layout_call/6]).
+-export([layout_return/3]).
 
 all() ->
     [test_rotate_right_down,
-     test_split_window].
+     test_split_window,
+     test_layout_windows].
 
 % all() -> [test_split_window].
 
@@ -212,6 +222,105 @@ test_split_window(_Config) ->
     A8 = cs_screen:split_window(x, y, W8, horizontal),
     ?assertEqual(E8, A8).
 
+test_layout_windows(_Config) ->
+    Wx = #window{id = x},
+    Wy = #window{id = y},
+    Wz = #window{id = z},
+    Wa = #window{id = a},
+    Wb = #window{id = b},
+
+    W1 = [[Wx]],
+    E1 = [[#window{id = x, w = 1, h = 1}]],
+    A1 = cs_screen:layout_windows(W1, 1, 1),
+    ?assertEqual(E1, A1),
+
+    W2 = [[Wx, Wy]],
+    E2 = [[#window{id = x, w = 1, h = 1},
+           #window{id = y, w = 1, h = 1}]],
+    A2 = cs_screen:layout_windows(W2, 1, 2),
+    ?assertEqual(E2, A2),
+
+    % dbg:stop(),
+
+    % Increase all numbers, jumps over lines with
+    % searches
+    % j/^ *A:nohlj0l?^  *W\d:noh0
+
+    % Do the same, but slowly
+    % :sleep 200mj:sleep 200m:sleep 200m/^ *A:sleep 200m:noh:sleep 200m:sleep 200ml:sleep 200m:sleep 200mj:sleep 200m0:sleep 200m:sleep 200ml:sleep 200m:sleep 200m?^  *W\d:sleep 200m:noh:sleep 200m0
+
+
+    W3 = [[Wx, Wy, Wz]],
+    E3 = [[#window{id = x, w = 1, h = 1},
+           #window{id = y, w = 1, h = 1},
+           #window{id = z, w = 2, h = 1}]],
+    A3 = cs_screen:layout_windows(W3, 1, 4),
+    ?assertEqual(E3, A3),
+
+    W4 = [[Wx, Wy], [Wz]],
+    E4 = [[#window{id = x, w = 2, h = 1},
+           #window{id = y, w = 2, h = 1}],
+          [#window{id = z, w = 4, h = 1}]],
+    A4 = cs_screen:layout_windows(W4, 2, 4),
+    ?assertEqual(E4, A4),
+
+    W5 = [[Wx, Wy], [Wz]],
+    E5 = [[#window{id = x, w = 2, h = 1},
+           #window{id = y, w = 2, h = 1}],
+          [#window{id = z, w = 4, h = 1}]],
+    A5 = cs_screen:layout_windows(W5, 2, 4),
+    ?assertEqual(E5, A5),
+
+    W6 = [[Wx, Wy], [Wz]],
+    E6 = [[#window{id = x, w = 2, h = 1},
+           #window{id = y, w = 2, h = 1}],
+          [#window{id = z, w = 4, h = 2}]],
+    A6 = cs_screen:layout_windows(W6, 3, 4),
+    ?assertEqual(E6, A6),
+
+    W7 = [[Wx, Wy], [Wz]],
+    E7 = [[#window{id = x, w = 2, h = 1},
+           #window{id = y, w = 2, h = 1}],
+          [#window{id = z, w = 4, h = 2}]],
+    A7 = cs_screen:layout_windows(W7, 3, 4),
+    ?assertEqual(E7, A7),
+
+    % +---+---+---+
+    % |   |   | a |
+    % | x | y +---+
+    % |   |   | b |
+    % +---+---+---+
+    % |     z     |
+    % +---+---+---+
+
+    dbg_layout(),
+
+    W8 = [[Wx, Wy, [[Wa], [Wb]]], [Wz]],
+    E8 = [[#window{id = x, w = 3, h = 4},
+           #window{id = y, w = 3, h = 4},
+           [[#window{id = a, w = 4, h = 2}],
+            [#window{id = b, w = 4, h = 2}]]],
+          [#window{id = z, w = 10, h = 5}]],
+    A8 = cs_screen:layout_windows(W8, 9, 10),
+    ?assertEqual(E8, A8),
+
+    dbg:stop(),
+
+    ok.
+
+dbg_layout() ->
+    State = {fun layout_call/6,
+             fun layout_return/3,
+             0},
+    dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            layout_windows,
+            7,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]).
+
 rotate_call(Spaces,
             M,
             F,
@@ -260,6 +369,33 @@ split_return(Spaces, MFA, Return) ->
     Converted = convert_windows(Return, []),
     ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
 
+layout_call(Spaces,
+            M,
+            F,
+            BaseName,
+            Line,
+            [Windows, Orientation, H, HR, W, WR, Acc]) ->
+    Converted = convert_windows(Windows, []),
+    AccConverted = convert_windows(Acc, []),
+
+    ct:pal("~s~p:~p(~p, ~p, ~p, ~p, ~p, ~p, ~p) [~p:~p]~n",
+           [Spaces,
+            M,
+            F,
+            Converted,
+            Orientation,
+            H,
+            HR,
+            W,
+            WR,
+            AccConverted,
+            BaseName,
+            Line]).
+
+layout_return(Spaces, MFA, Return) ->
+    Converted = convert_windows(Return, []),
+    ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
+
 
 convert_trace({trace, _Pid, return_from, MFA, Return},
               {CallFun, ReturnFun, Indent}) ->
@@ -273,7 +409,6 @@ convert_trace({trace,
                {M, F, Args},
                MFA_Path_Line},
               {CallFun, ReturnFun, Indent}) ->
-    ct:pal("Convert trace", []),
     Spaces = indent(Indent),
     {_, _, _, {Path, Line}} = MFA_Path_Line,
     BaseName = filename:basename(Path, ".erl"),
@@ -290,13 +425,17 @@ indent(0, Spaces) ->
 indent(N, Spaces) ->
     indent(N - 1, [?SPACE | Spaces]).
 
-convert_windows([#window{id = Id} | Rest], Acc) ->
+convert_windows([#window{id = Id, h = 0, w = 0} | Rest], Acc) ->
     convert_windows(Rest, Acc ++ [Id]);
+convert_windows([#window{id = Id, h = H, w = W} | Rest], Acc) ->
+    convert_windows(Rest, Acc ++ [{Id, H, W}]);
 convert_windows([List | Rest], Acc) ->
     Converted = convert_windows(List, []),
     convert_windows(Rest, Acc ++ [Converted]);
-convert_windows(#window{id = Id}, Acc) ->
+convert_windows(#window{id = Id, h = 0, w = 0}, Acc) ->
     Acc ++ [Id];
+convert_windows(#window{id = Id, h = H, w = W}, Acc) ->
+    Acc ++ [{Id, H, W}];
 convert_windows([], Acc) ->
     Acc.
 
