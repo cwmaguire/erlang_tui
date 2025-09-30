@@ -12,6 +12,7 @@
 -record(state, {translate_fun,
                 h = 0,
                 w = 0,
+                has_border = false,
                 cursor_pos}).
 
 start_link(TranslateFun, {H, W}) ->
@@ -33,13 +34,17 @@ handle_call(_Req, _From, State) ->
 %% Will need translate function.
 handle_cast(draw, State = #state{translate_fun = TFun,
                                  w = W,
-                                 h = H}) ->
-    draw(TFun, H, W),
+                                 h = H,
+                                 has_border = HasBorder}) ->
+    draw(TFun, H, W, HasBorder),
     {noreply, State};
 handle_cast({translate_fun, F}, State = #state{}) ->
     {noreply, State#state{translate_fun = F}};
-handle_cast({update, Fun, W, H}, State) ->
-    {noreply, State#state{translate_fun = Fun, w = W, h = H}};
+handle_cast({update, Fun, W, H, HasBorder}, State) ->
+    {noreply, State#state{translate_fun = Fun,
+                          w = W,
+                          h = H,
+                          has_border = HasBorder}};
 handle_cast(_Req, State) ->
     {noreply, State}.
 
@@ -49,12 +54,25 @@ handle_info(_Info, State) ->
 terminate(_, _) ->
     ok.
 
-draw(TFun, H, W) ->
+draw(TFun, H, W, HasBorder) ->
     {X, Y} = TFun(5, 5),
-    cs_io:do_atomic_ops([{cursor_pos, X, Y}, {write, "Hi!"}]),
-    [draw_left_border(TFun(X_, H)) || X_ <- lists:seq(0, W)].
 
-draw_left_border({X, Y}) ->
+    cs_io:do_atomic_ops([{cursor_pos, X, Y}, {write, "Hi!"}]),
+
+    case HasBorder of
+        true ->
+            [draw_left_border(TFun(0, Y_)) || Y_ <- lists:seq(0, H)];
+        false ->
+            ok
+    end,
+    [draw_status_bar(TFun(X_, H)) || X_ <- lists:seq(0, W)].
+
+draw_status_bar({X, Y}) ->
     %% █ is 9608 (U+2588 where 2588 is hex)
     Ops = [{cursor_pos, X, Y}, {write, "█"}],
+    cs_io:do_atomic_ops(Ops).
+
+draw_left_border({X, Y}) ->
+    %% █ is 9474
+    Ops = [{cursor_pos, X, Y}, {write, "│"}],
     cs_io:do_atomic_ops(Ops).

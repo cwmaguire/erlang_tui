@@ -138,24 +138,29 @@ test_split_window(_Config) ->
     Wz = #window{id = z},
     Wa = #window{id = a},
 
+    NewWindow =
+        fun(Id, X, Y, W, H) ->
+            #window{id = Id, x = X, y = Y, w = W, h = H}
+        end,
+
     W1 = [],
     E1 = [],
-    A1 = cs_screen:split_window(x, y, W1, vertical),
+    A1 = cs_screen:split_window(x, y, W1, vertical, NewWindow),
     ?assertEqual(E1, A1),
 
     W2 = [],
     E2 = [],
-    A2 = cs_screen:split_window(x, y, W2, horizontal),
+    A2 = cs_screen:split_window(x, y, W2, horizontal, NewWindow),
     ?assertEqual(E2, A2),
 
     W3 = [[Wx]],
     E3 = [[Wx, Wy]],
-    A3 = cs_screen:split_window(x, y, W3, vertical),
+    A3 = cs_screen:split_window(x, y, W3, vertical, NewWindow),
     ?assertEqual(E3, A3),
 
     W4 = [[Wx]],
     E4 = [[Wx], [Wy]],
-    A4 = cs_screen:split_window(x, y, W4, horizontal),
+    A4 = cs_screen:split_window(x, y, W4, horizontal, NewWindow),
     ?assertEqual(E4, A4),
 
     % [[x, z]]
@@ -166,7 +171,7 @@ test_split_window(_Config) ->
 
     W5 = [[Wx, Wz]],
     E5 = [[Wx, Wy, Wz]],
-    A5 = cs_screen:split_window(x, y, W5, vertical),
+    A5 = cs_screen:split_window(x, y, W5, vertical, NewWindow),
     ?assertEqual(E5, A5),
 
     % [x,z]     -> [[[x,y], z]]
@@ -179,7 +184,7 @@ test_split_window(_Config) ->
 
     W6 = [[Wx, Wz]],
     E6 = [[[[Wx], [Wy]], Wz]],
-    A6 = cs_screen:split_window(x, y, W6, horizontal),
+    A6 = cs_screen:split_window(x, y, W6, horizontal, NewWindow),
     ?assertEqual(E6, A6),
 
     % [[[x,z], a]] ->   [[[[x, y], z], a]]
@@ -202,7 +207,7 @@ test_split_window(_Config) ->
 
     W7 = [[[[Wx], [Wz]], Wa]],
     E7 = [[[[Wx, Wy], [Wz]], Wa]],
-    A7 = cs_screen:split_window(x, y, W7, vertical),
+    A7 = cs_screen:split_window(x, y, W7, vertical, NewWindow),
     ?assertEqual(E7, A7),
 
     dbg:stop(),
@@ -219,7 +224,7 @@ test_split_window(_Config) ->
 
     W8 = [[[[Wx], [Wz]], Wa]],
     E8 = [[[[Wx], [Wy], [Wz]], Wa]],
-    A8 = cs_screen:split_window(x, y, W8, horizontal),
+    A8 = cs_screen:split_window(x, y, W8, horizontal, NewWindow),
     ?assertEqual(E8, A8).
 
 test_layout_windows(_Config) ->
@@ -230,13 +235,13 @@ test_layout_windows(_Config) ->
     Wb = #window{id = b},
 
     W1 = [[Wx]],
-    E1 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0}]],
+    E1 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0, has_border = false}]],
     A1 = cs_screen:layout_windows(W1, 1, 1),
     ?assertEqual(E1, A1),
 
     W2 = [[Wx, Wy]],
-    E2 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0},
-           #window{id = y, w = 1, h = 1, x = 1, y = 0}]],
+    E2 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0, has_border = false},
+           #window{id = y, w = 1, h = 1, x = 1, y = 0, has_border = true}]],
     A2 = cs_screen:layout_windows(W2, 1, 2),
     ?assertEqual(E2, A2),
 
@@ -251,30 +256,30 @@ test_layout_windows(_Config) ->
 
 
     W3 = [[Wx, Wy, Wz]],
-    E3 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0},
-           #window{id = y, w = 1, h = 1, x = 1, y = 0},
-           #window{id = z, w = 2, h = 1, x = 2, y = 0}]],
+    E3 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0, has_border = false},
+           #window{id = y, w = 1, h = 1, x = 1, y = 0, has_border = true},
+           #window{id = z, w = 2, h = 1, x = 2, y = 0, has_border = true}]],
     A3 = cs_screen:layout_windows(W3, 1, 4),
     ?assertEqual(E3, A3),
 
     W4 = [[Wx, Wy], [Wz]],
-    E4 = [[#window{id = x, w = 2, h = 1, x = 0, y = 0},
-           #window{id = y, w = 2, h = 1, x = 2, y = 0}],
-          [#window{id = z, w = 4, h = 1, x = 0, y = 1}]],
+    E4 = [[#window{id = x, w = 2, h = 1, x = 0, y = 0, has_border = false},
+           #window{id = y, w = 2, h = 1, x = 2, y = 0, has_border = true}],
+          [#window{id = z, w = 4, h = 1, x = 0, y = 1, has_border = false}]],
     A4 = cs_screen:layout_windows(W4, 2, 4),
     ?assertEqual(E4, A4),
 
     W5 = [[Wx, Wy], [Wz]],
-    E5 = [[#window{id = x, w = 2, h = 1, x = 0, y = 0},
-           #window{id = y, w = 3, h = 1, x = 2, y = 0}],
-          [#window{id = z, w = 5, h = 1, x = 0, y = 1}]],
+    E5 = [[#window{id = x, w = 2, h = 1, x = 0, y = 0, has_border = false},
+           #window{id = y, w = 3, h = 1, x = 2, y = 0, has_border = true}],
+          [#window{id = z, w = 5, h = 1, x = 0, y = 1, has_border = false}]],
     A5 = cs_screen:layout_windows(W5, 2, 5),
     ?assertEqual(E5, A5),
 
     W6 = [[Wx, Wy], [Wz]],
-    E6 = [[#window{id = x, w = 2, h = 1, x = 0, y = 0},
-           #window{id = y, w = 2, h = 1, x = 2, y = 0}],
-          [#window{id = z, w = 4, h = 2, x = 0, y = 1}]],
+    E6 = [[#window{id = x, w = 2, h = 1, x = 0, y = 0, has_border = false},
+           #window{id = y, w = 2, h = 1, x = 2, y = 0, has_border = true}],
+          [#window{id = z, w = 4, h = 2, x = 0, y = 1, has_border = false}]],
     A6 = cs_screen:layout_windows(W6, 3, 4),
     ?assertEqual(E6, A6),
 
@@ -289,11 +294,11 @@ test_layout_windows(_Config) ->
     dbg_layout(),
 
     W8 = [[Wx, Wy, [[Wa], [Wb]]], [Wz]],
-    E8 = [[#window{id = x, w = 3, h = 4, x = 0, y = 0},
-           #window{id = y, w = 3, h = 4, x = 3, y = 0},
-           [[#window{id = a, w = 4, h = 2, x = 6, y = 0}],
-            [#window{id = b, w = 4, h = 2, x = 6, y = 2}]]],
-          [#window{id = z, w = 10, h = 5, x = 0, y = 4}]],
+    E8 = [[#window{id = x, w = 3, h = 4, x = 0, y = 0, has_border = false},
+           #window{id = y, w = 3, h = 4, x = 3, y = 0, has_border = true},
+           [[#window{id = a, w = 4, h = 2, x = 6, y = 0, has_border = true}],
+            [#window{id = b, w = 4, h = 2, x = 6, y = 2, has_border = true}]]],
+          [#window{id = z, w = 10, h = 5, x = 0, y = 4, has_border = false}]],
     A8 = cs_screen:layout_windows(W8, 9, 10),
     ?assertEqual(E8, A8),
 

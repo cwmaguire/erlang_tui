@@ -33,12 +33,11 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
--export([split_window/4]).
+-export([split_window/5]).
 -export([rotate_right/2]).
 -export([layout_windows/3]).
 
 -record(state, {windows = [],
-                borders = [],
                 focused_window_id,
                 next_id = 1,
                 h = 0,
@@ -84,7 +83,7 @@ create_first_window(State = #state{next_id = Id}, H, W) ->
                 windows = [[Window]],
                 next_id = Id + 1}.
 
-window(Id, X, Y, H, W) ->
+window(Id, _X, _Y, H, W) ->
     % F = translate_fun(X, Y),
     {ok, Pid} = supervisor:start_child(cs_window_sup, [undefined, {H, W}]),
     #window{id = Id, pid = Pid, h = H, w = W}.
@@ -99,13 +98,12 @@ get_window(FocusId, Windows) ->
     Index = #window.id,
     #window{} = lists:keyfind(FocusId, Index, Windows).
 
-%% TODO move to split/4
 split_vertical( State = #state{windows = Windows1,
                                focused_window_id = FocusId,
                                next_id = NextId,
                                h = H,
                                w = W}) ->
-    Windows2 = split_window(FocusId, NextId, Windows1, vertical),
+    Windows2 = split_window(FocusId, NextId, Windows1, vertical, fun window/5),
     Windows3 = layout_windows(Windows2, H, W),
     draw(Windows3),
 
@@ -161,8 +159,8 @@ rotate_right(_WindowId,
              Acc) ->
     Acc.
 
-split_window(WindowId, NextId, Windows, Dir) ->
-     split_window(WindowId, NextId, Windows, rows, Dir, []).
+split_window(WindowId, NextId, Windows, Dir, NewWindow) ->
+     split_window(WindowId, NextId, Windows, rows, Dir, NewWindow, []).
 
 % [x, y]
 % [[x], [y]]
@@ -172,8 +170,9 @@ split_window(WindowId,
              [ [W1 = #window{id = WindowId}] | Rest],
              rows,
              horizontal,
+             NewWindow,
              Acc) ->
-    W = #window{id = NextId},
+    W = NewWindow(NextId, 0, 0, 0, 0),
     Acc ++ [[W1], [W]] ++ Rest;
 
 split_window(WindowId,
@@ -181,6 +180,7 @@ split_window(WindowId,
              [Row | Rows],
              rows,
              Dir,
+             NewWindow,
              Acc) ->
     NewRow =
         split_window(WindowId,
@@ -188,13 +188,15 @@ split_window(WindowId,
                      Row,
                      columns,
                      Dir,
+                     NewWindow,
                      []),
-      
+
     split_window(WindowId,
                  NextId,
                  Rows,
                  rows,
                  Dir,
+                 NewWindow,
                  Acc ++ [NewRow]);
 
 % x is in a row (R) with one column (C2).
@@ -203,21 +205,22 @@ split_window(WindowId,
 % another column below, we can just add another row to the
 % column
 %   C1
-%    R                
+%    R
 %     C2
-% [[[[x],[y]],z]]  There must be at least two rows in the  
+% [[[[x],[y]],z]]  There must be at least two rows in the
 % +---+---+        x,y column or else it would be
 % | x |   |        [[[[x]]]], which doesn't make sense.
 % +---+ z |        It would be simplified down to [[x]]
-% | y |   |          
-% +---+---+          
+% | y |   |
+% +---+---+
 split_window(WindowId,
              NextId,
              [ [[W1 = #window{id = WindowId}] | RestR] | RestC],
              columns,
              horizontal,
+             NewWindow,
              Acc) ->
-    W = window(NextId, 0, 0, 0, 0),
+    W = NewWindow(NextId, 0, 0, 0, 0),
     Acc ++ [[[W1], [W] | RestR]] ++ RestC;
 
 split_window(WindowId,
@@ -225,9 +228,10 @@ split_window(WindowId,
              [W1 = #window{id = WindowId} | Rest],
              columns,
              Dir,
+             NewWindow,
              Acc) ->
-    W = window(NextId, 0, 0, 0, 0),
-    case Dir of 
+    W = NewWindow(NextId, 0, 0, 0, 0),
+    case Dir of
         vertical ->
             % [[[[x], [y]], z]]     [[[[x, *], [y]], z]]
             % +---+---+             +---+---+---+
@@ -252,12 +256,14 @@ split_window(WindowId,
              [W = #window{} | Rest],
              columns,
              Dir,
+             NewWindow,
              Acc) ->
     split_window(WindowId,
                  NextId,
                  Rest,
                  columns,
                  Dir,
+                 NewWindow,
                  Acc ++ [W]);
 
 %  RCRC,C  RC   C
@@ -273,24 +279,28 @@ split_window(WindowId,
              [ColumnRows | Rest],
              columns,
              Dir,
+             NewWindow,
              Acc) when is_list(ColumnRows) ->
     NewRows = split_window(WindowId,
                            NextId,
                            ColumnRows,
                            rows,
                            Dir,
+                           NewWindow,
                            []),
     split_window(WindowId,
                  NextId,
                  Rest,
                  columns,
                  Dir,
+                 NewWindow,
                  Acc ++ [NewRows]);
 split_window(_WindowId,
              _NextId,
              [],
              _ListType,
              _Dir,
+             NewWindow,
              Acc) ->
     Acc.
 
@@ -309,47 +319,52 @@ split_window(_WindowId,
 % +---+---+
 
 layout_windows(Rows, Height, Width) ->
-    layout_windows(Rows, Height, Width, 0, 0).
+    layout_windows(Rows, Height, Width, 0, 0, false).
 
-layout_windows(Rows, Height, Width, X, Y) ->
+layout_windows(Rows, Height, Width, X, Y, HasBorder) ->
     N = length(Rows),
     H = Height div N,
     HR = Height rem N,
-    layout_windows(Rows, rows, H, HR, Width, 0, X, Y, []).
+    layout_windows(Rows, rows, H, HR, Width, 0, X, Y, HasBorder, []).
 
-layout_windows([LastRow1], rows, H, HR, Width, 0, X, Y, Acc) ->
+layout_windows([LastRow1], rows, H, HR, Width, 0, X, Y, HasBorder, Acc) ->
     N = length(LastRow1),
     W = Width div N,
     WR = Width rem N,
-    LastRow2 = layout_windows(LastRow1, cols, H + HR, 0, W, WR, X, Y, []),
+    LastRow2 = layout_windows(LastRow1, cols, H + HR, 0, W, WR, X, Y, HasBorder, []),
     Acc ++ [LastRow2];
 
-layout_windows([Row | Rest], rows, H, HR, Width, _WR, X, Y, Acc1) ->
+layout_windows([Row | Rest], rows, H, HR, Width, _WR, X, Y, HasBorder, Acc1) ->
     N = length(Row),
     W = Width div N,
     WR = Width rem N,
-    Row2 = layout_windows(Row, cols, H, 0, W, WR, X, Y, []),
+    Row2 = layout_windows(Row, cols, H, 0, W, WR, X, Y, HasBorder, []),
     Acc2 = Acc1 ++ [Row2],
-    layout_windows(Rest, rows, H, HR, Width, 0, X, Y + H, Acc2);
+    layout_windows(Rest, rows, H, HR, Width, 0, X, Y + H, HasBorder, Acc2);
 
-layout_windows([Win1 = #window{}], cols, H, _HR, W, WR, X, Y, Acc) ->
-    Win2 = Win1#window{h = H, w = W + WR, x = X, y = Y},
+layout_windows([Win1 = #window{}], cols, H, _HR, W, WR, X, Y, HasBorder, Acc) ->
+    Win2 = Win1#window{h = H, w = W + WR, x = X, y = Y, has_border = HasBorder},
     Acc ++ [Win2];
 
-layout_windows([Win1 = #window{} | Rest], cols, H, _HR, W, WR, X, Y, Acc1) ->
-    Win2 = Win1#window{h = H, w = W, x = X, y = Y},
+layout_windows([Win1 = #window{} | Rest], cols, H, _HR, W, WR, X, Y, HasBorder, Acc1) ->
+    Win2 = Win1#window{h = H, w = W, x = X, y = Y, has_border = HasBorder},
     Acc2 = Acc1 ++ [Win2],
-    layout_windows(Rest, cols, H, 0, W, WR, X + W, Y, Acc2);
+    layout_windows(Rest, cols, H, 0, W, WR, X + W, Y, true, Acc2);
 
-layout_windows([Col], cols, H, _HR, W, WR, X, Y, Acc) ->
-    Acc ++ [layout_windows(Col, H, W + WR, X, Y)];
+layout_windows([Col], cols, H, _HR, W, WR, X, Y, HasBorder, Acc) ->
+    Acc ++ [layout_windows(Col, H, W + WR, X, Y, HasBorder)];
 
-layout_windows([Col | Rest], cols, H, _HR, W, WR, X, Y, Acc1) ->
-    Acc2 = Acc1 ++ [layout_windows(Col, H, W, X, Y)],
-    layout_windows(Rest, cols, H, 0, W, WR, X, Y, Acc2).
+layout_windows([Col | Rest], cols, H, _HR, W, WR, X, Y, HasBorder, Acc1) ->
+    Acc2 = Acc1 ++ [layout_windows(Col, H, W, X, Y, HasBorder)],
+    layout_windows(Rest, cols, H, 0, W, WR, X, Y, true, Acc2).
 
-draw([#window{pid = Pid, x = X, y = Y, w = W, h = H} | Rest]) ->
-    gen_server:cast(Pid, {update, translate_fun(X, Y), W, H}),
+draw([#window{pid = Pid,
+              x = X,
+              y = Y,
+              w = W,
+              h = H,
+              has_border = HasBorder} | Rest]) ->
+    gen_server:cast(Pid, {update, translate_fun(X, Y), W, H, HasBorder}),
     gen_server:cast(Pid, draw),
     draw(Rest);
 draw([List | Rest]) ->
