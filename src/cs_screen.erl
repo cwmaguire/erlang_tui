@@ -54,13 +54,19 @@ init(_Args) ->
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
-handle_cast(split_vertical, State) ->
-    {noreply, _NewState = split_vertical(State)};
+handle_cast(split_vertical, State1) ->
+    State2 = split_vertical(State1),
+    % TODO
+    % - add layout
+    % - add draw call
+    {noreply, State2};
 handle_cast(_Req, State) ->
     {noreply, State}.
 
 handle_info({textarea_size, H, W}, State = #state{windows = []}) ->
-    {noreply, _NewState = create_first_window(State, H, W)};
+    State2 = #state{windows = Windows} = create_first_window(State, H, W),
+    draw(Windows),
+    {noreply, State2};
 handle_info({textarea_size, H, W}, State) ->
     % TODO update window sizes
     {noreply, State#state{h = H, w = W}};
@@ -70,9 +76,17 @@ handle_info(_Info, State) ->
 terminate(_, _) ->
     ok.
 
+create_first_window(State = #state{next_id = Id}, H, W) ->
+    Window = window(Id, _X = 0, _Y = 0, H, W),
+    State#state{h = H,
+                w = W,
+                focused_window_id = Id,
+                windows = [[Window]],
+                next_id = Id + 1}.
+
 window(Id, X, Y, H, W) ->
-    F = translate_fun(X, Y),
-    {ok, Pid} = supervisor:start_child(cs_window_sup, [F, {H, W}]),
+    % F = translate_fun(X, Y),
+    {ok, Pid} = supervisor:start_child(cs_window_sup, [undefined, {H, W}]),
     #window{id = Id, pid = Pid, h = H, w = W}.
 
 translate_fun(ScreenX, ScreenY) ->
@@ -81,50 +95,22 @@ translate_fun(ScreenX, ScreenY) ->
              ScreenY + WindowY}
     end.
 
-get_focused_window(FocusId, Windows) ->
+get_window(FocusId, Windows) ->
     Index = #window.id,
     #window{} = lists:keyfind(FocusId, Index, Windows).
 
-create_first_window(State = #state{next_id = Id}, H, W) ->
-    Window = window(Id, _X = 0, _Y = 0, H, W),
-    State#state{h = H,
-                w = W,
-                focused_window_id = Id,
-                windows = [Window],
-                next_id = Id + 1}.
-
 %% TODO move to split/4
-split_vertical( State = #state{windows = Windows,
-                               borders = Borders,
+split_vertical( State = #state{windows = Windows1,
                                focused_window_id = FocusId,
-                               next_id = Id,
+                               next_id = NextId,
                                h = H,
                                w = W}) ->
-    io:put_chars("split vert"),
-    OldWindow = 
-        #window{x = X,
-                y = Y,
-                h = H,
-                w = W} = get_focused_window(FocusId, Windows),
-    W1 = W div 2,
-    W2 = W1 - (1 - (W rem 2)),
-    BorderWidth = 1,
-    NewWindow = window(Id, X + W1 + BorderWidth, Y, H, W2),
-    OldWindow2 = OldWindow#window{w = W1},
-    OtherWindows = lists:filter(fun(#window{id = Id_})
-                                  when Id_ /= FocusId ->
-                                    true;
-                                   (_) ->
-                                    false
-                                end,
-                                Windows),
-    NewWindows = [OldWindow2, NewWindow | OtherWindows],
+    Windows2 = split_window(FocusId, NextId, Windows1, vertical),
+    Windows3 = layout_windows(Windows2, H, W),
+    draw(Windows3),
 
-    NewBorders = [{FocusId, Id} | Borders],
-
-    State#state{windows = NewWindows,
-                borders = NewBorders,
-                focused_window_id = Id}.
+    State#state{windows = Windows3,
+                focused_window_id = NextId}.
 
 rotate_right(_WindowId, Windows = []) ->
     Windows;
@@ -231,7 +217,7 @@ split_window(WindowId,
              columns,
              horizontal,
              Acc) ->
-    W = #window{id = NextId},
+    W = window(NextId, 0, 0, 0, 0),
     Acc ++ [[[W1], [W] | RestR]] ++ RestC;
 
 split_window(WindowId,
@@ -240,7 +226,7 @@ split_window(WindowId,
              columns,
              Dir,
              Acc) ->
-    W = #window{id = NextId},
+    W = window(NextId, 0, 0, 0, 0),
     case Dir of 
         vertical ->
             % [[[[x], [y]], z]]     [[[[x, *], [y]], z]]
@@ -362,3 +348,12 @@ layout_windows([Col | Rest], cols, H, _HR, W, WR, X, Y, Acc1) ->
     Acc2 = Acc1 ++ [layout_windows(Col, H, W, X, Y)],
     layout_windows(Rest, cols, H, 0, W, WR, X, Y, Acc2).
 
+draw([#window{pid = Pid, x = X, y = Y, w = W, h = H} | Rest]) ->
+    gen_server:cast(Pid, {update, translate_fun(X, Y), W, H}),
+    gen_server:cast(Pid, draw),
+    draw(Rest);
+draw([List | Rest]) ->
+    draw(List),
+    draw(Rest);
+draw([]) ->
+    ok.

@@ -26,6 +26,7 @@ sub_textarea_size(Pid) ->
 	gen_server:cast(?MODULE, {sub_text_area_size, Pid}).
 
 do_atomic_ops(Ops) ->
+    timer:sleep(25),
 	gen_server:cast(cs_io, {atomic, Ops}).
 
 cursor_pos(X, Y) ->

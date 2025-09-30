@@ -80,6 +80,24 @@ characters, and and integer percentage cols/rows should be enough. Maybe.
                    
                    100,50 -> win -> 100,50
 
+Drawing
+-------------
+
+How will drawing be triggered.
+- Window resize
+- Window split
+- Window rotate
+
+What process will know these things?
+  io -> parser (?) -> event handler
+
+How will cs_screen send drawing commands to io?
+atomic operations?
+
+We'll do bottom and left borders.
+Window at 0,N will have no left border.
+All windows will have bottom borders for window info.
+
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-27   ┃
 ┗━━━━━━━━━━━━━━━━┛
