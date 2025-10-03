@@ -6,6 +6,7 @@ _build
 _checkouts
 _vendor
 .eunit
+.DS_Store
 *.o
 *.beam
 *.plt

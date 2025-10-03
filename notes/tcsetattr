@@ -1,0 +1,105 @@
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-09-30   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Even in "raw" mode, when I hit Ctrl-l, the screen gets "cleared", except since I'm the alternative screen buffer, it doesn't really work. (Maybe because linefeed doesn't happen.)
+
+I need to make some system calls to tell the kernel to change how the tty is handled.
+
+From Grok:
+------------
+
+Implementing a C Driver for Erlang
+To capture Ctrl+L like Neovim, you can write a C-based NIF or port driver for Erlang that uses tcsetattr to set raw mode and read() to capture keycodes, passing them to your Erlang TUI for processing. Here’s a step-by-step approach:
+
+Set Up Raw Mode in C:
+Create a C function to configure the terminal using termios. Save the original settings to restore them on exit:
+c#include <termios.h>
+#include <unistd.h>
+#include <stdio.h>
+
+struct termios original_term;
+
+void set_raw_mode() {
+    struct termios term;
+    tcgetattr(STDIN_FILENO, &original_term); // Save original settings
+    term = original_term;
+    term.c_lflag &= ~(ICANON | ECHO | ISIG); // Disable canonical mode, echo, signals
+    term.c_iflag &= ~(IXON | ICRNL); // Disable flow control, CR-to-NL mapping
+    term.c_oflag &= ~(OPOST); // Disable output processing
+    term.c_cc[VMIN] = 1; // Read at least 1 byte
+    term.c_cc[VTIME] = 0; // No timeout
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+void restore_term() {
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_term); // Restore original settings
+}
+
+Read Raw Input:
+Use read() to capture single bytes, including Ctrl+L (0x0C):
+cint read_key() {
+    unsigned char buf;
+    ssize_t n = read(STDIN_FILENO, &buf, 1);
+    if (n == 1) return buf;
+    return -1; // Error or EOF
+}
+
+Integrate with Erlang via NIF:
+Create an Erlang NIF to call the C functions. The NIF sets raw mode and reads keycodes, passing them to Erlang as integers or binaries. Example NIF:
+c#include <erl_nif.h>
+
+static ERL_NIF_TERM set_raw_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+    set_raw_mode();
+    return enif_make_atom(env, "ok");
+}
+
+static ERL_NIF_TERM read_key_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+    int key = read_key();
+    if (key >= 0) return enif_make_int(env, key);
+    return enif_make_atom(env, "error");
+}
+
+static ERL_NIF_TERM restore_term_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+    restore_term();
+    return enif_make_atom(env, "ok");
+}
+
+static ErlNifFunc nif_funcs[] = {
+    {"set_raw", 0, set_raw_nif},
+    {"read_key", 0, read_key_nif},
+    {"restore_term", 0, restore_term_nif}
+};
+
+ERL_NIF_INIT(my_tui, nif_funcs, NULL, NULL, NULL, NULL)
+
+Erlang Input Loop:
+Load the NIF and use it in your TUI’s event loop to process Ctrl+L:
+erlang-module(my_tui).
+-export([start/0]).
+
+-on_load(init/0).
+init() ->
+    ok = erl_nif:load_nif("./my_tui_nif", 0).
+
+set_raw() -> erlang:nif_error(nif_not_loaded).
+read_key() -> erlang:nif_error(nif_not_loaded).
+restore_term() -> erlang:nif_error(nif_not_loaded).
+
+start() ->
+    set_raw(),
+    input_loop(),
+    restore_term().
+
+input_loop() ->
+    case read_key() of
+        12 -> io:format("Ctrl+L pressed, moving right~n"), input_loop(); % Handle Ctrl+L (0x0C)
+        Key when is_integer(Key) -> io:format("Key: ~p~n", [Key]), input_loop();
+        error -> ok
+    end.
+
+Build and Test:
+Compile the NIF with gcc -fPIC -shared -o my_tui_nif.so my_tui_nif.c -I$ERL_ROOT/include, run your Erlang app in iTerm2 with {noshell, raw}, and verify that Ctrl+L is captured as 12 without triggering a screen clear. Use your existing alternate screen code ("\033[?1049h") alongside this for TUI rendering.
+
+Why This Works
+By using tcsetattr to set raw mode, your C driver ensures the kernel delivers Ctrl+L as 0x0C directly to your app, bypassing any terminal emulator keybindings. Neovim’s libtermkey does exactly this, polling stdin for raw bytes and mapping them to actions via its keymap. Unlike Erlang’s :io.get_chars/3, which relies on the OTP tty driver and may not fully prevent emulator interference, a C driver gives you direct control over termios settings and input reading, matching Neovim’s precision. Ensure you call restore_term() on exit to avoid leaving the terminal in raw mode (e.g., using erl_nif:on_unload or trapping EXIT in Erlang). For robustness, handle errors in read() (e.g., EINTR) and test across terminals (xterm, iTerm2) to ensure portability. Study libtermkey’s source or Erlang’s tty_sl.c in OTP for advanced key parsing (e.g., handling multi-byte sequences like arrow keys). This approach keeps your app self-contained without requiring iTerm2 configuration changes.

@@ -46,8 +46,9 @@ handle_call(_Req, _From, State) ->
 handle_cast(start, State) ->
 	start(),
 	{noreply, State};
-handle_cast({input, Chars}, State) ->
-    parse(Chars),
+handle_cast({input, Char}, State) ->
+    parse(Char),
+    io:format("[~p]", [Char]),
 	{noreply, State};
 % TODO move these textarea_size clauses to a function
 handle_cast({textarea_size, H, W}, State = #state{monitor = undefined}) ->
@@ -83,13 +84,15 @@ handle_info(_Info, State) ->
 	{noreply, State}.
 
 terminate(_, _) ->
+    io:format("shutting down 1"),
 	tui_mode(false),
+    io:format("shutting down 2~n"),
 	ok.
 
 start() ->
-    ok = shell:start_interactive({noshell, raw}),
+    % ok = shell:start_interactive({noshell, raw}),
 	tui_mode(true),
-	start_input_loop(),
+	% start_input_loop(),
 	get_textarea_size().
 
 tui_mode(true) ->
@@ -112,30 +115,32 @@ get_textarea_size() ->
 	io:put_chars(cs_esc:get_textarea_size()).
 
 %% TODO send this to one or more parsing servers
-parse([?ESC]) ->
+parse(?ESC) ->
 	io:put_chars("?ESC");
-parse([?ESC | Rest]) ->
-	gen_server:cast(self(), cs_esc:parse_escape_code(Rest));
-parse("q") ->
+% parse([?ESC | Rest]) ->
+	% gen_server:cast(self(), cs_esc:parse_escape_code(Rest));
+parse($q) ->
     quit();
-parse("u") ->
+parse($u) ->
     io:put_chars(cs_esc:format("Double Underline", [double_underline]));
-parse("s") ->
+parse($s) ->
     io:put_chars(cs_esc:get_screen_size());
-parse("S") ->
+parse($S) ->
     io:put_chars(cs_esc:get_textarea_size());
-parse("c") ->
-	{ok, Cols} = io:columns(),
-	io:put_chars(["Columns ", integer_to_list(Cols)]);
-parse("r") ->
-	{ok, Rows} = io:rows(),
-	io:put_chars(["Rows ", integer_to_list(Rows), "\r\n"]);
-parse("|") ->
+parse($c) ->
+    io:put_chars("@");
+	% {ok, Cols} = io:columns(),
+	% io:put_chars(["Columns ", integer_to_list(Cols)]);
+parse($r) ->
+    io:put_chars("$");
+	% {ok, Rows} = io:rows(),
+	% io:put_chars(["Rows ", integer_to_list(Rows), "\r\n"]);
+parse($|) ->
 	gen_server:cast(cs_screen, split_vertical);
 parse(List) when is_list(List) ->
-    io:put_chars(List);
+    io:put_chars(["_", List, "^"]);
 parse(Other) ->
-	% Formats [a] as "a"
+	% Formats {a} as "a"
 	io:format("~p", [Other]).
 
 publish(Group, {textarea_size, H, W}) ->
