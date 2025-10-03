@@ -10,20 +10,17 @@
 -export([handle_info/2]).
 
 -export([quit/0]).
--export([sub_textarea_size/1]).
 -export([cursor_pos/2]).
 -export([do_atomic_ops/1]).
 
 -record(state, {textarea_size,
-			    monitor}).
+			    monitor,
+                esc_buffer = []}).
 
 -define(ESC, 27).
 
 quit() ->
 	gen_server:cast(self(), quit).
-
-sub_textarea_size(Pid) ->
-	gen_server:cast(?MODULE, {sub_text_area_size, Pid}).
 
 do_atomic_ops(Ops) ->
     timer:sleep(25),
@@ -46,10 +43,10 @@ handle_call(_Req, _From, State) ->
 handle_cast(start, State) ->
 	start(),
 	{noreply, State};
-handle_cast({input, Char}, State) ->
-    parse(Char),
+handle_cast({input, Char}, State = #state{esc_buffer = EscBuffer}) ->
     io:format("[~p]", [Char]),
-	{noreply, State};
+    NewBuffer = maybe_parse(EscBuffer, Char),
+	{noreply, State#state{esc_buffer = NewBuffer}};
 % TODO move these textarea_size clauses to a function
 handle_cast({textarea_size, H, W}, State = #state{monitor = undefined}) ->
 	{Monitor, Group} = pg:monitor(textarea_size),
@@ -121,19 +118,19 @@ get_textarea_size() ->
 % - buffer, not part of escape code   -> not valid escape code, flip to normal, process buffer
 
 maybe_parse([], ?ESC) ->
-    erlang:send_after(20, self(), esc_timer),
+    erlang:send_after(20, self(), esc_timeout),
     [?ESC];
 maybe_parse([], Char) ->
     parse(Char),
     [];
-maybe_parse(NotEscapeCode, esc_timer) ->
+maybe_parse(NotEscapeCode, esc_timeout) ->
     parse(NotEscapeCode),
     [];
 maybe_parse(NotEscapeCode, ?ESC) ->
     parse(NotEscapeCode ++ [?ESC]),
     [];
 maybe_parse(MaybeEscapeCode, Char) ->
-    case maybe_escape(MaybeEscapeCode, Char) of
+    case cs_esc:parse_escape(MaybeEscapeCode ++ [Char]) of
         {escape, EscapeCode} ->
             escape_code(EscapeCode),
             [];
@@ -144,19 +141,13 @@ maybe_parse(MaybeEscapeCode, Char) ->
             MaybeEscapeCode ++ [Char]
     end.
 
-maybe_escape(MaybeEscape, Char) ->
-    not_escape.
+escape_code({text_area, H, W}) ->
+    io:format("text area ~p,~p", [H,W]),
+    gen_server:cast(self(), {textarea_size, H, W});
+escape_code({screen_size, H, W}) ->
+    io:format("text area ~p,~p", [H,W]),
+    gen_server:cast(self(), {screen_size, H, W}).
 
-escape_code(_EscapeCode) ->
-    ok.
-
-%% TODO send this to one or more parsing servers
-%parse(?ESC) ->
-%	io:put_chars("?ESC"),
-%    erlang:send_after(20, self(), esc_timer),
-%    [?ESC];
-% parse([?ESC | Rest]) ->
-	% gen_server:cast(self(), cs_esc:parse_escape_code(Rest));
 parse($q) ->
     quit();
 parse($u) ->
@@ -175,11 +166,14 @@ parse($r) ->
 	% io:put_chars(["Rows ", integer_to_list(Rows), "\r\n"]);
 parse($|) ->
 	gen_server:cast(cs_screen, split_vertical);
+% parse([Char | Rest]) ->
+    % parse(Char),
+    % parse(Rest);
 parse(List) when is_list(List) ->
-    io:put_chars(["_", List, "^"]);
+    [parse(Char) || Char <- List];
 parse(Other) ->
 	% Formats {a} as "a"
-	io:format("~p", [Other]).
+	io:format("(~p)", [Other]).
 
 publish(Group, {textarea_size, H, W}) ->
 	[Pid ! {textarea_size, H, W} || Pid <- Group].

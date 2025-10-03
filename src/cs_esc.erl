@@ -37,8 +37,11 @@
 -export([repeat_prev_char/1]).
 -export([repeat_char/2]).
 
--export([parse_escape_code/1]).
--export([parse_escape_code/2]).
+-export([parse_escape/1]).
+% -export([parse_escape_code/2]).
+
+-export([esc/1]).
+-export([esc/2]).
 
 % * = doesn't work in gnome-terminal
 -define(FEATURES,
@@ -219,47 +222,51 @@ get_textarea_size() ->
 -define(F, F > 47, F < 58).
 -define(G, G > 47, G < 58).
 
-esc(X=[27]) -> X;
+parse_escape(Chars) -> esc(Chars).
+
+% esc(X=[27]) -> X;
 esc(X=[?E]) -> X;
 esc(X=[?E,$8]) -> X;
 esc(X=[?E,$8,$;]) -> X;
-esc(X=[?E,$8,$;,A]) when ?A -> X;
-esc(X=[?E,$8,$;,A,$;]) when ?A -> X;
-esc(X=[?E,$8,$;,A,$;,B]) when ?A,?B -> X;
-esc(X=[?E,$8,$;,A,$;,B,$t]) when ?A,?B -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,$;,B,C]) when ?A,?B,?C -> X;
-esc(X=[?E,$8,$;,A,$;,B,C,$t]) when ?A,?B,?C -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,$;,B,C,D]) when ?A,?B,?C,?D -> X;
-esc(X=[?E,$8,$;,A,$;,B,C,D,$t]) when ?A,?B,?C,?D -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,B]) when ?A,?B -> X;
-esc(X=[?E,$8,$;,A,B,$;]) when ?A,?B -> X;
-esc(X=[?E,$8,$;,A,B,$;,C]) when ?A,?B,?C -> X;
-esc(X=[?E,$8,$;,A,B,$;,C,$t]) when ?A,?B,?C -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,B,$;,C,D]) when ?A,?B,?C,?D -> X;
-esc(X=[?E,$8,$;,A,B,$;,C,D,$t]) when ?A,?B,?C,?D -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,B,$;,C,D,F]) when ?A,?B,?C,?D,?F -> X;
-esc(X=[?E,$8,$;,A,B,$;,C,D,F,$t]) when ?A,?B,?C,?D,?F -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,B,C,$;]) when ?A,?B,?C -> X;
-esc(X=[?E,$8,$;,A,B,C,$;,D]) when ?A,?B,?C,?D -> X;
-esc(X=[?E,$8,$;,A,B,C,$;,D,$t]) when ?A,?B,?C,?D -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,B,C,$;,D,F]) when ?A,?B,?C,?D,?F -> X;
-esc(X=[?E,$8,$;,A,B,C,$;,D,F,$t]) when ?A,?B,?C,?D,?F -> esc(text_area, X);
-esc(X=[?E,$8,$;,A,B,C,$;,D,F,G]) when ?A,?B,?C,?D,?F,?G -> X;
-esc(X=[?E,$8,$;,A,B,C,$;,D,F,G,$t]) when ?A,?B,?C,?D,?F,?G -> esc(text_area, X);
-esc(X=[?E,$9]) -> X;
-esc(X=[?E,$9, $;]) -> X;
+esc(X=[?E,$8,$;|_]) -> esc(text_area, X);
+esc(X=[?E,$9,$;|_]) -> esc(screen_size, X);
+esc(_) -> not_escape.
 
+%        E   8
+%        S   -                              
+%        C [ 9 ;
+esc(_,X=[_,_,_,_,A]) when ?A -> X;
+esc(_,X=[_,_,_,_,A,$;]) when ?A -> X;
+esc(_,X=[_,_,_,_,A,$;,B]) when ?A,?B -> X;
+esc(T,_=[_,_,_,_,A,$;,B,$t]) when ?A,?B -> esc_(T, [A], [B]);
+esc(_,X=[_,_,_,_,A,$;,B,C]) when ?A,?B,?C -> X;
+esc(T,_=[_,_,_,_,A,$;,B,C,$t]) when ?A,?B,?C -> esc_(T, [A], [B,C]);
+esc(_,X=[_,_,_,_,A,$;,B,C,D]) when ?A,?B,?C,?D -> X;
+esc(T,_=[_,_,_,_,A,$;,B,C,D,$t]) when ?A,?B,?C,?D -> esc_(T, [A], [B,C,D]);
+esc(_,X=[_,_,_,_,A,B]) when ?A,?B -> X;
+esc(_,X=[_,_,_,_,A,B,$;]) when ?A,?B -> X;
+esc(_,X=[_,_,_,_,A,B,$;,C]) when ?A,?B,?C -> X;
+esc(T,_=[_,_,_,_,A,B,$;,C,$t]) when ?A,?B,?C -> esc_(T, [A,B], [C]);
+esc(_,X=[_,_,_,_,A,B,$;,C,D]) when ?A,?B,?C,?D -> X;
+esc(T,_=[_,_,_,_,A,B,$;,C,D,$t]) when ?A,?B,?C,?D -> esc_(T, [A,B], [C,D]);
+esc(_,X=[_,_,_,_,A,B,$;,C,D,F]) when ?A,?B,?C,?D,?F -> X;
+esc(T,_=[_,_,_,_,A,B,$;,C,D,F,$t]) when ?A,?B,?C,?D,?F -> esc_(T, [A,B], [C,D,F]);
+esc(_,X=[_,_,_,_,A,B,C,$;]) when ?A,?B,?C -> X;
+esc(_,X=[_,_,_,_,A,B,C,$;,D]) when ?A,?B,?C,?D -> X;
+esc(T,_=[_,_,_,_,A,B,C,$;,D,$t]) when ?A,?B,?C,?D -> esc_(T, [A,B,C], [D]);
+esc(_,X=[_,_,_,_,A,B,C,$;,D,F]) when ?A,?B,?C,?D,?F -> X;
+esc(T,_=[_,_,_,_,A,B,C,$;,D,F,$t]) when ?A,?B,?C,?D,?F -> esc_(T, [A,B,C], [D,F]);
+esc(_,X=[_,_,_,_,A,B,C,$;,D,F,G]) when ?A,?B,?C,?D,?F,?G -> X;
+esc(T,_=[_,_,_,_,A,B,C,$;,D,F,G,$t]) when ?A,?B,?C,?D,?F,?G -> esc_(T, [A,B,C], [D,F,G]);
+esc(_,_) -> not_escape.
 
-
-parse_escape_code([?ESC, ?CTRL_SEQ_INTRO, $8, $; | Rest]) ->
-    [H0, W0] = string:split(Rest, ";"),
-	{H, _} = string:to_integer(H0),
-	{W, _} = string:to_integer(W0),
-	io:put_chars("."),
-	{textarea_size, H, W};
-parse_escape_code([?ESC, ?CTRL_SEQ_INTRO, $9, $; | Rest]) ->
-    [H0, W0] = string:split(Rest, ";"),
-	{H, _} = string:to_integer(H0),
-	{W, _} = string:to_integer(W0),
-	io:put_chars("."),
-	{screen_size, H, W};
+esc_(text_area, X, Y) ->
+    {escape,
+     {text_area,
+      list_to_integer(X),
+      list_to_integer(Y)}};
+esc_(screen_size, X, Y) ->
+    {escape,
+     {screen_size,
+      list_to_integer(X),
+      list_to_integer(Y)}}.
