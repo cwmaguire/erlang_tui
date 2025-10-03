@@ -71,9 +71,10 @@ start_input_loop() ->
 input_loop() ->
     case read_key() of
         no_data ->
-            -1;
+            ok;
         Char ->
             io:format("{~p}", [Char]),
             gen_server:cast(cs_io, {input, Char})
     end,
+    timer:sleep(10),
     input_loop().

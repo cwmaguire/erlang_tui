@@ -45,11 +45,10 @@ static void restore_term() {
 }
 
 static int read_key() {
-    unsigned char buf;
+    unsigned char buf = 0;
     ssize_t n = read(STDIN_FILENO, &buf, 1);
-    /* return buf; */
     if (n == 1) return buf;
-    return -1; // Error or EOF
+    return -1; // Error or no character read
 }
 
 // NIF functions
