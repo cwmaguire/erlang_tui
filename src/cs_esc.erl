@@ -211,22 +211,55 @@ get_screen_size() ->
 get_textarea_size() ->
 	[?ESC, ?CTRL_SEQ_INTRO, "18t"].
 
-parse_escape_code([?CTRL_SEQ_INTRO, $8, $; | Rest]) ->
+-define(A, A > 47, A < 58).
+-define(B, B > 47, B < 58).
+-define(C, C > 47, C < 58).
+-define(D, D > 47, D < 58).
+-define(E, 27,$[).
+-define(F, F > 47, F < 58).
+-define(G, G > 47, G < 58).
+
+esc(X=[27]) -> X;
+esc(X=[?E]) -> X;
+esc(X=[?E,$8]) -> X;
+esc(X=[?E,$8,$;]) -> X;
+esc(X=[?E,$8,$;,A]) when ?A -> X;
+esc(X=[?E,$8,$;,A,$;]) when ?A -> X;
+esc(X=[?E,$8,$;,A,$;,B]) when ?A,?B -> X;
+esc(X=[?E,$8,$;,A,$;,B,$t]) when ?A,?B -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,$;,B,C]) when ?A,?B,?C -> X;
+esc(X=[?E,$8,$;,A,$;,B,C,$t]) when ?A,?B,?C -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,$;,B,C,D]) when ?A,?B,?C,?D -> X;
+esc(X=[?E,$8,$;,A,$;,B,C,D,$t]) when ?A,?B,?C,?D -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,B]) when ?A,?B -> X;
+esc(X=[?E,$8,$;,A,B,$;]) when ?A,?B -> X;
+esc(X=[?E,$8,$;,A,B,$;,C]) when ?A,?B,?C -> X;
+esc(X=[?E,$8,$;,A,B,$;,C,$t]) when ?A,?B,?C -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,B,$;,C,D]) when ?A,?B,?C,?D -> X;
+esc(X=[?E,$8,$;,A,B,$;,C,D,$t]) when ?A,?B,?C,?D -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,B,$;,C,D,F]) when ?A,?B,?C,?D,?F -> X;
+esc(X=[?E,$8,$;,A,B,$;,C,D,F,$t]) when ?A,?B,?C,?D,?F -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,B,C,$;]) when ?A,?B,?C -> X;
+esc(X=[?E,$8,$;,A,B,C,$;,D]) when ?A,?B,?C,?D -> X;
+esc(X=[?E,$8,$;,A,B,C,$;,D,$t]) when ?A,?B,?C,?D -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,B,C,$;,D,F]) when ?A,?B,?C,?D,?F -> X;
+esc(X=[?E,$8,$;,A,B,C,$;,D,F,$t]) when ?A,?B,?C,?D,?F -> esc(text_area, X);
+esc(X=[?E,$8,$;,A,B,C,$;,D,F,G]) when ?A,?B,?C,?D,?F,?G -> X;
+esc(X=[?E,$8,$;,A,B,C,$;,D,F,G,$t]) when ?A,?B,?C,?D,?F,?G -> esc(text_area, X);
+esc(X=[?E,$9]) -> X;
+esc(X=[?E,$9, $;]) -> X;
+
+
+
+parse_escape_code([?ESC, ?CTRL_SEQ_INTRO, $8, $; | Rest]) ->
     [H0, W0] = string:split(Rest, ";"),
 	{H, _} = string:to_integer(H0),
 	{W, _} = string:to_integer(W0),
 	io:put_chars("."),
 	{textarea_size, H, W};
-parse_escape_code([?CTRL_SEQ_INTRO, $9, $; | Rest]) ->
+parse_escape_code([?ESC, ?CTRL_SEQ_INTRO, $9, $; | Rest]) ->
     [H0, W0] = string:split(Rest, ";"),
 	{H, _} = string:to_integer(H0),
 	{W, _} = string:to_integer(W0),
 	io:put_chars("."),
 	{screen_size, H, W};
-parse_escape_code(Other) ->
-	io:format("?~p~n", [Other]),
-	{unrecognized_escape_code, Other}.
-
-parse_escape_code(A, B) ->
-	io:format("?!~p|~p~n", [A, B]),
-	{unrecognized_escape_code, A, B}.

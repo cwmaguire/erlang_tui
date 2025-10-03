@@ -114,9 +114,47 @@ input_loop(Parent) ->
 get_textarea_size() ->
 	io:put_chars(cs_esc:get_textarea_size()).
 
+% - no buffer, get ESC                -> flip to escape mode
+% - no buffer, get non-ESC            -> stay normal
+% - buffer, get ESC                   -> not valid escape code, flip to normal, process buffer
+% - buffer, part of escape code       -> maybe escape code, in escape mode
+% - buffer, not part of escape code   -> not valid escape code, flip to normal, process buffer
+
+maybe_parse([], ?ESC) ->
+    erlang:send_after(20, self(), esc_timer),
+    [?ESC];
+maybe_parse([], Char) ->
+    parse(Char),
+    [];
+maybe_parse(NotEscapeCode, esc_timer) ->
+    parse(NotEscapeCode),
+    [];
+maybe_parse(NotEscapeCode, ?ESC) ->
+    parse(NotEscapeCode ++ [?ESC]),
+    [];
+maybe_parse(MaybeEscapeCode, Char) ->
+    case maybe_escape(MaybeEscapeCode, Char) of
+        {escape, EscapeCode} ->
+            escape_code(EscapeCode),
+            [];
+        not_escape ->
+            parse(MaybeEscapeCode ++ [Char]),
+            [];
+        _ ->
+            MaybeEscapeCode ++ [Char]
+    end.
+
+maybe_escape(MaybeEscape, Char) ->
+    not_escape.
+
+escape_code(_EscapeCode) ->
+    ok.
+
 %% TODO send this to one or more parsing servers
-parse(?ESC) ->
-	io:put_chars("?ESC");
+%parse(?ESC) ->
+%	io:put_chars("?ESC"),
+%    erlang:send_after(20, self(), esc_timer),
+%    [?ESC];
 % parse([?ESC | Rest]) ->
 	% gen_server:cast(self(), cs_esc:parse_escape_code(Rest));
 parse($q) ->

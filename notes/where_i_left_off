@@ -1,4 +1,15 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-02   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Need a state machine to read in escape codes we only read in one character at a time now.
+
+As soon as we get an ESC we set a timer and start checking to see if we're getting an escape code.
+Escape codes should come in thick and fast since they're from the terminal. Once the timer goes off,
+if we haven't found a valid escape code, then we just parse all the characters as regular
+characters. For example, in Vim the ESC key is just "exit normal mode".
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-29   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
@@ -30,6 +41,10 @@ U+2588 ... the 2588 is in base 16 (hex).
 ▘ 9624  ▙ 9625  ▚ 9626  ▛ 9627  ▜ 9628  ▝ 9629  ▞ 9630  ▟ 9631  ■ 9632
 ■ 9632  □ 9633  ▢ 9634  ▣ 9635  ▤ 9636  ▥ 9637  ▦ 9638  ▧ 9639  ▨ 9640
 ▨ 9640  ▩ 9641  ▪ 9642  ▫ 9643  ▬ 9644  ▭ 9645  ▮ 9646  ▯ 9647  ▰ 9648
+
+Sounds like I'm going to need a NIF to turn off Ctrl-l (L) causing a screen clear.
+
+See [tcsetattr]
 
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-09-28   ┃
