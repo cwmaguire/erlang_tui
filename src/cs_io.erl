@@ -164,6 +164,9 @@ parse($S) ->
     io:put_chars(cs_esc:get_textarea_size());
 parse($c) ->
     io:put_chars("@");
+parse($C) ->
+    io:put_chars(cs_esc:clear_screen()),
+    io:put_chars(cs_esc:clear_col());
 parse($r) ->
     io:put_chars("$");
 parse($|) ->

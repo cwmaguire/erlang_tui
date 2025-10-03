@@ -30,6 +30,8 @@
 -export([get_cursor_position/0]).
 -export([get_screen_size/0]).
 -export([get_textarea_size/0]).
+-export([clear_screen/0]).
+-export([clear_col/0]).
 
 -export([format/2]).
 -export([cursor_type/1]).
@@ -174,6 +176,18 @@ repeat_prev_char(Count) ->
 
 repeat_char(Char, Count) ->
     [Char, ?ESC, ?CTRL_SEQ_INTRO, Count, ?REPEAT].
+
+% CSI Ps J  Erase in Display (ED), VT100.
+%             Ps = 0  ⇒  Erase Below (default).
+%             Ps = 1  ⇒  Erase Above.
+%             Ps = 2  ⇒  Erase All.
+%             Ps = 3  ⇒  Erase Saved Lines, xterm.
+clear_screen() ->
+    % [?ESC, ?CTRL_SEQ_INTRO, $3, $g].  % doesn't work
+    [?ESC, ?CTRL_SEQ_INTRO, $2, $J].
+
+clear_col() ->
+    [?ESC, ?CTRL_SEQ_INTRO, $0, $g].
 
 % CSI Ps n  Device Status Report (DSR).
 %             Ps = 5  ⇒  Status Report.
