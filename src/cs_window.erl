@@ -65,7 +65,11 @@ draw(TFun, H, W, HasBorder) ->
         false ->
             ok
     end,
-    [draw_status_bar(TFun(X_, H)) || X_ <- lists:seq(0, W)].
+    [draw_status_bar(TFun(X_, H)) || X_ <- lists:seq(0, W)],
+    reset_cursor().
+
+reset_cursor() ->
+    cs_io:cursor_pos(5, 5).
 
 draw_status_bar({X, Y}) ->
     %% █ is 9608 (U+2588 where 2588 is hex)

@@ -300,7 +300,7 @@ split_window(_WindowId,
              [],
              _ListType,
              _Dir,
-             NewWindow,
+             _NewWindow,
              Acc) ->
     Acc.
 

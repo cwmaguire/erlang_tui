@@ -27,7 +27,8 @@ do_atomic_ops(Ops) ->
 	gen_server:cast(cs_io, {atomic, Ops}).
 
 cursor_pos(X, Y) ->
-	gen_server:cast(cs_io, {cursor_pos, X, Y}).
+	gen_server:cast(cs_io, {cursor_pos, X, Y}),
+	gen_server:cast(cs_io, {text, "***"}).
 
 
 start_link() ->
@@ -47,7 +48,12 @@ handle_cast({input, Char}, State = #state{esc_buffer = EscBuffer}) ->
     io:format("[~p]", [Char]),
     NewBuffer = maybe_parse(EscBuffer, Char),
 	{noreply, State#state{esc_buffer = NewBuffer}};
-% TODO move these textarea_size clauses to a function
+handle_cast({cursor_pos, X, Y}, State) ->
+    cursor_pos_(X, Y),
+    {noreply, State};
+handle_cast({text, Text}, State) ->
+    text(Text),
+    {noreply, State};
 handle_cast({textarea_size, H, W}, State = #state{monitor = undefined}) ->
 	{Monitor, Group} = pg:monitor(textarea_size),
 	publish(Group, {textarea_size, H, W}),
@@ -176,6 +182,9 @@ publish(Group, {textarea_size, H, W}) ->
 
 cursor_pos_(X, Y) ->
 	io:put_chars(cs_esc:cursor_pos(X, Y)).
+
+text(Text) ->
+    io:format(Text).
 
 do_atomic_ops_({cursor_pos, X, Y}) ->
 	cursor_pos_(X, Y);
