@@ -229,6 +229,8 @@ esc(X=[?E]) -> X;
 esc(X=[?E,$8]) -> X;
 esc(X=[?E,$8,$;]) -> X;
 esc(X=[?E,$8,$;|_]) -> esc(text_area, X);
+esc(X=[?E,$9]) -> X;
+esc(X=[?E,$9,$;]) -> X;
 esc(X=[?E,$9,$;|_]) -> esc(screen_size, X);
 esc(_) -> not_escape.
 

@@ -145,7 +145,7 @@ escape_code({text_area, H, W}) ->
     io:format("text area ~p,~p", [H,W]),
     gen_server:cast(self(), {textarea_size, H, W});
 escape_code({screen_size, H, W}) ->
-    io:format("text area ~p,~p", [H,W]),
+    io:format("screen size ~p,~p", [H,W]),
     gen_server:cast(self(), {screen_size, H, W}).
 
 parse($q) ->
@@ -158,12 +158,8 @@ parse($S) ->
     io:put_chars(cs_esc:get_textarea_size());
 parse($c) ->
     io:put_chars("@");
-	% {ok, Cols} = io:columns(),
-	% io:put_chars(["Columns ", integer_to_list(Cols)]);
 parse($r) ->
     io:put_chars("$");
-	% {ok, Rows} = io:rows(),
-	% io:put_chars(["Rows ", integer_to_list(Rows), "\r\n"]);
 parse($|) ->
 	gen_server:cast(cs_screen, split_vertical);
 % parse([Char | Rest]) ->
