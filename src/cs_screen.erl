@@ -64,6 +64,7 @@ handle_cast(_Req, State) ->
 
 handle_info({textarea_size, H, W}, State = #state{windows = []}) ->
     State2 = #state{windows = Windows} = create_first_window(State, H, W),
+    cs_io:clear_screen(),
     draw(Windows),
     {noreply, State2};
 handle_info({textarea_size, H, W}, State) ->
@@ -105,6 +106,7 @@ split_vertical( State = #state{windows = Windows1,
                                w = W}) ->
     Windows2 = split_window(FocusId, NextId, Windows1, vertical, fun window/5),
     Windows3 = layout_windows(Windows2, H, W),
+    cs_io:clear_screen(),
     draw(Windows3),
 
     State#state{windows = Windows3,

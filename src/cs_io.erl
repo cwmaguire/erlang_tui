@@ -11,6 +11,7 @@
 
 -export([quit/0]).
 -export([cursor_pos/2]).
+-export([clear_screen/0]).
 -export([do_atomic_ops/1]).
 
 -record(state, {textarea_size,
@@ -30,6 +31,8 @@ cursor_pos(X, Y) ->
 	gen_server:cast(cs_io, {cursor_pos, X, Y}),
 	gen_server:cast(cs_io, {text, "***"}).
 
+clear_screen() ->
+    gen_server:cast(cs_io, clear_screen).
 
 start_link() ->
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -50,6 +53,9 @@ handle_cast({input, Char}, State = #state{esc_buffer = EscBuffer}) ->
 	{noreply, State#state{esc_buffer = NewBuffer}};
 handle_cast({cursor_pos, X, Y}, State) ->
     cursor_pos_(X, Y),
+    {noreply, State};
+handle_cast(clear_screen, State) ->
+    clear_screen_(),
     {noreply, State};
 handle_cast({text, Text}, State) ->
     text(Text),
@@ -165,7 +171,8 @@ parse($S) ->
 parse($c) ->
     io:put_chars("@");
 parse($C) ->
-    io:put_chars(cs_esc:clear_screen()),
+    clear_screen();
+parse($1) ->
     io:put_chars(cs_esc:clear_col());
 parse($r) ->
     io:put_chars("$");
@@ -188,6 +195,9 @@ cursor_pos_(X, Y) ->
 
 text(Text) ->
     io:format(Text).
+
+clear_screen_() ->
+    io:put_chars(cs_esc:clear_screen()).
 
 do_atomic_ops_({cursor_pos, X, Y}) ->
 	cursor_pos_(X, Y);
