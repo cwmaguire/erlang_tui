@@ -1,4 +1,52 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-04   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+A window should have a buffer process that stores all the text.
+For example, if the buffer has a line that's 1000 characters long, the window shouldn't care, it
+should just display what it can, based on the line-wrapping setting.
+
+I don't like the name "buffer". A buffer seems like something that temporarily holds something, or
+adds a layer of overflow between to things.
+
+"File" could be confused with something stored on disk. "Temp file" seems like what I need: you need
+to make your temp file permanent if you want to keep it. Granted, I plan to save the temp file in
+case the user *doesn't* save it. The user's file is what we use when they decide they want to
+overwrite their data with the data that's in the temp file.
+"backup file"?
+"safety file"?
+"working file"?
+"scratch"? it's not meant to be thrown away
+"hidden file"
+"save" / "save file" confused with actually writing the file to disk
+
+I mean, I guess if you were using the buffer to store data while it was being written, that would
+make sense, although we might call that a cache.
+
+Someone has probably written an IEEE standard on this and spent hours debating it. That's okay, it's
+my project and I get to explore the consequences of my decisions.
+
+memory file?
+memory chunk?
+memory copy? "mem_copy" would sound like a C or assembly instruction.
+memory backup?
+memory storage?
+memory document mem_doc
+RAM copy
+running copy
+working copy
+draft - I like it - it's version that's not done, not ready for publication, i.e. writing to disk.
+document - doesn't mean file: "You have unsaved documents"
+page - implies something phsyical, some kind of partial segment of something
+scroll
+parchment
+book
+treatise
+snippet
+chunk
+text - confusing: portion of text is also text
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-02   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

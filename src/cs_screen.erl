@@ -33,6 +33,7 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([focus/1]).
 -export([text/1]).
 -export([split_window/5]).
 -export([rotate_right/2]).
@@ -45,6 +46,13 @@
                 h = 0,
                 w = 0}).
 
+focus(Direction) ->
+    gen_server:cast(?MODULE, {focus, Direction}).
+
+-define(ESC, 27).
+
+text(?ESC) ->
+    gen_server:cast(?MODULE, {text, "ESC"});
 text(Char) ->
     gen_server:cast(?MODULE, {text, [Char]}).
 
@@ -58,6 +66,9 @@ init(_Args) ->
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
+handle_cast({focus, Direction}, State1) ->
+    State2 = focus_(Direction, State1),
+    {noreply, State2};
 handle_cast({text, Text}, State = #state{focused_window_pid = Pid}) ->
     % io:format("Pid: ~p", [Pid]),
     gen_server:cast(Pid, {text, Text}),
@@ -130,7 +141,8 @@ split_vertical( State = #state{windows = Windows1,
 
     State#state{windows = Windows3,
                 focused_window_id = NextId,
-                focused_window_pid = FocusedWindowPid}.
+                focused_window_pid = FocusedWindowPid,
+                next_id = NextId + 1}.
 
 rotate_right(_WindowId, Windows = []) ->
     Windows;
@@ -393,4 +405,10 @@ draw([List | Rest]) ->
     draw(List),
     draw(Rest);
 draw([]) ->
+    ok.
+
+focus_(Direction, State) ->
+    % TODO
+    % - find current window
+    %
     ok.

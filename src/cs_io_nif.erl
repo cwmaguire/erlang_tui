@@ -69,11 +69,32 @@ start_input_loop() ->
     spawn_monitor(fun input_loop/0).
 
 input_loop() ->
-    case read_key() of
-        no_data ->
-            timer:sleep(10);
-        Char ->
-            io:format("{~p}", [Char]),
-            gen_server:cast(cs_io, {input, Char})
-    end,
-    input_loop().
+    input_loop(1).
+
+input_loop(Column1) ->
+    Column2 = 
+        case read_key() of
+            no_data ->
+                case Column1 of
+                    1 ->
+                        ok;
+                    _ ->
+                        % Debug = lists:flatten(io_lib:format("Column1: ~p", [Column1])),
+                        % cs_io:debug(Debug, Column1, 20)
+                         cs_io:debug("                                                                   ",
+                                     Column1, 3)
+                end,
+                timer:sleep(10),
+                1;
+            Char ->
+                case Column1 of
+                    1 ->
+                        cs_io:debug("PTY:", 1, 3);
+                    _ ->
+                        ok
+                end,
+                cs_io:debug([Char], Column1 + 5, 3),
+                cs_io:input(Char),
+                Column1 + 6
+        end,
+    input_loop(Column2).

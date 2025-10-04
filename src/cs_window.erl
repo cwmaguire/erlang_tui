@@ -39,8 +39,10 @@ handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({text, Text}, State = #state{translate_fun = TFun,
-                                         cursor_pos = CursorPos}) ->
-    NewCursorPos = text(TFun, CursorPos, Text),
+                                         cursor_pos = CursorPos,
+                                         w = W,
+                                         h = H}) ->
+    NewCursorPos = text_(TFun, CursorPos, Text, W, H),
     {noreply, State#state{cursor_pos = NewCursorPos}};
 %% cs_screen should send 'draw' once windows are laid out.
 %% Will need translate function.
@@ -69,11 +71,21 @@ terminate(_, _) ->
 %% TODO wrap text if wrap on
 %% TODO calculate new cursor pos
 %% TODO calculate max width
-text(TFun, {X, Y}, Text) ->
-    {ScreenX, ScreenY} = TFun(X, Y),
+text_(TFun, {X, Y}, [Char | _], W, _H) when X >= W ->
+    {ScreenX, ScreenY} = TFun(W, Y),
     cs_io:do_atomic_ops(
         [{cursor_pos, ScreenX, ScreenY},
-         {text, Text}]),
+         {text, [Char]}]),
+    {X, Y};
+text_(TFun, {X, Y}, Text, W, _H) ->
+    {ScreenX, ScreenY} = TFun(X, Y),
+
+    MaxLength = W - X + 1,
+    VisibleText = lists:sublist(Text, MaxLength),
+
+    cs_io:do_atomic_ops(
+        [{cursor_pos, ScreenX, ScreenY},
+         {text, VisibleText}]),
     {X + length(Text), Y}.
 
 draw(TFun, H, W, HasBorder) ->

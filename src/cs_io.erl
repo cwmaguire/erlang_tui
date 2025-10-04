@@ -9,6 +9,8 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([input/1]).
+-export([debug/3]).
 -export([quit/0]).
 -export([cursor_pos/2]).
 -export([clear_screen/0]).
@@ -19,6 +21,12 @@
                 esc_buffer = []}).
 
 -define(ESC, 27).
+
+debug(Text, X, Y) ->
+    gen_server:cast(?MODULE, {debug, Text, X, Y}).
+
+input(Char) ->
+    gen_server:cast(?MODULE, {input, Char}).
 
 quit() ->
 	gen_server:cast(self(), quit).
@@ -71,13 +79,20 @@ handle_cast({textarea_size, H, W}, State) ->
 handle_cast({atomic, Ops}, State) ->
 	[do_atomic_ops_(Op) || Op <- Ops],
 	{noreply, State};
+handle_cast({debug, "~", X, Y}, State) ->
+    debug_("~~", X, Y),
+    {noreply, State};
+handle_cast({debug, Text, X, Y}, State) ->
+    debug_(Text, X, Y),
+    {noreply, State};
 handle_cast(restart, State) ->
 	start_input_loop(),
 	{noreply, State};
 handle_cast(quit, State) ->
     {stop, normal, State}; 
 handle_cast(Req, State) ->
-	io:format("cs_io unrecognized cast: ~p~n", [Req]),
+	Debug = lists:flatten(io_lib:format("cs_io unrecognized cast: ~p~n", [Req])),
+    debug_(Debug, 1, 12),
 	{noreply, State}.
 %
 handle_info({Ref, join, textarea_size, Joined},
@@ -154,30 +169,50 @@ maybe_parse(MaybeEscapeCode, Char) ->
     end.
 
 escape_code({text_area, H, W}) ->
-    io:format("text area ~p,~p", [H,W]),
+    Debug = lists:flatten(io_lib:format("text area ~p,~p", [H,W])),
+    debug_(Debug, 1, 10),
     gen_server:cast(self(), {textarea_size, H, W});
 escape_code({screen_size, H, W}) ->
-    io:format("screen size ~p,~p", [H,W]),
+    Debug = lists:flatten(io_lib:format("screen size ~p,~p", [H,W])),
+    debug_(Debug, 1, 11),
     gen_server:cast(self(), {screen_size, H, W}).
 
 parse($q) ->
     quit();
+parse(8) ->
+    debug_("Focus <-"),
+    cs_screen:focus(left);
+parse(10) ->
+    debug_("Focus down"),
+    cs_screen:focus(down);
+parse(11) ->
+    debug_("Focus up"),
+    cs_screen:focus(up);
+parse(12) ->
+    debug_("Focus ->"),
+    cs_screen:focus(right);
 parse($u) ->
-    debug(cs_esc:format("Double Underline", [double_underline]));
+    debug_(cs_esc:format("Double Underline", [double_underline])),
+    text(cs_esc:format("Double Underline", [double_underline]));
 parse($s) ->
-    debug(cs_esc:get_screen_size());
+    debug_(cs_esc:get_screen_size()),
+    text(cs_esc:get_screen_size());
 parse($S) ->
-    debug(cs_esc:get_textarea_size());
+    debug_(cs_esc:get_textarea_size()),
+    text(cs_esc:get_textarea_size());
 parse($c) ->
-    debug("@");
+    debug_("@");
 parse($C) ->
     clear_screen();
 parse($1) ->
-    io:put_chars(cs_esc:clear_col());
+    debug_(cs_esc:clear_col()),
+    text(cs_esc:clear_col());
 parse($2) ->
-    io:put_chars(cs_esc:clear_screen());
+    debug_(cs_esc:clear_screen()),
+    text(cs_esc:clear_screen());
 parse($r) ->
-    debug("$");
+    debug_("$"),
+    text("$");
 parse($|) ->
 	gen_server:cast(cs_screen, split_vertical);
 % parse([Char | Rest]) ->
@@ -186,20 +221,41 @@ parse($|) ->
 parse(List) when is_list(List) ->
     [parse(Char) || Char <- List];
 parse(Other) ->
+    debug_(["Sent ", Other, " to screen"]),
     cs_screen:text(Other).
 
 publish(Group, {textarea_size, H, W}) ->
 	[Pid ! {textarea_size, H, W} || Pid <- Group].
 
-debug(Text) ->
-    cursor_pos_(5, 5),
-    text(Text).
+debug_(Text) ->
+    debug_("CSIO: " ++ Text ++ "                    ", 1, 5).
+
+debug_(Text, X, Y) ->
+    cursor_pos_(X, Y),
+    debug_text(Text).
 
 cursor_pos_(X, Y) ->
 	io:put_chars(cs_esc:cursor_pos(X, Y)).
 
+debug_text(Text) ->
+    Flattened = lists:flatten(Text),
+    Parsed = [parse2(Char) || Char <- Flattened],
+    io:format(Parsed).
+
+parse2(8) -> "\\b";
+parse2(9) -> "\\t";
+parse2(10) -> "\\n";
+parse2(11) -> "\\v";
+parse2(12) -> "\\f";
+parse2(13) -> "\\r";
+parse2(?ESC) -> "\\e";
+parse2(N) when N > 0, N < 8 -> [$\ | integer_to_list(N)];
+parse2(N) when N > 13, N < 32 -> [$\ | integer_to_list(N)];
+parse2(N) when N > 126 -> [$\ | integer_to_list(N)];
+parse2(PrintableChar) -> PrintableChar.
+
 text(Text) ->
-    io:format(Text).
+    io:put_chars(Text).
 
 clear_screen_() ->
     io:put_chars(cs_esc:clear_screen()).
