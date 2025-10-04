@@ -54,10 +54,21 @@ handle_info(_Info, State) ->
 terminate(_, _) ->
     ok.
 
+%% TODO wrap text if wrap on
+%% TODO calculate new cursor pos
+%% TODO calculate max width
+text(TFun, {X, Y}, Text) ->
+    {ScreenX, ScreenY} = TFun(X, Y),
+    cs_io:do_atomic_ops(
+        [{cursor_pos, ScreenX, ScreenY},
+         {text, Text}]),
+    {X + length(Text), Y}.
+
 draw(TFun, H, W, HasBorder) ->
     {X, Y} = TFun(5, 5),
 
-    cs_io:do_atomic_ops([{cursor_pos, X, Y}, {write, "Hi!"}]),
+    cs_io:do_atomic_ops([{cursor_pos, X, Y},
+                         {text, "Hi!"}]),
 
     case HasBorder of
         true ->

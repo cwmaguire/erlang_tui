@@ -28,8 +28,8 @@ do_atomic_ops(Ops) ->
 	gen_server:cast(cs_io, {atomic, Ops}).
 
 cursor_pos(X, Y) ->
-	gen_server:cast(cs_io, {cursor_pos, X, Y}),
-	gen_server:cast(cs_io, {text, "***"}).
+	gen_server:cast(cs_io, {cursor_pos, X, Y}).
+	% gen_server:cast(cs_io, {text, "***"}).
 
 clear_screen() ->
     gen_server:cast(cs_io, clear_screen).
@@ -48,7 +48,7 @@ handle_cast(start, State) ->
 	start(),
 	{noreply, State};
 handle_cast({input, Char}, State = #state{esc_buffer = EscBuffer}) ->
-    io:format("[~p]", [Char]),
+    % io:format("[~p]", [Char]),
     NewBuffer = maybe_parse(EscBuffer, Char),
 	{noreply, State#state{esc_buffer = NewBuffer}};
 handle_cast({cursor_pos, X, Y}, State) ->
