@@ -33,15 +33,20 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([text/1]).
 -export([split_window/5]).
 -export([rotate_right/2]).
 -export([layout_windows/3]).
 
 -record(state, {windows = [],
                 focused_window_id,
+                focused_window_pid,
                 next_id = 1,
                 h = 0,
                 w = 0}).
+
+text(Char) ->
+    gen_server:cast(?MODULE, {text, [Char]}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -53,6 +58,10 @@ init(_Args) ->
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
+handle_cast({text, Text}, State = #state{focused_window_pid = Pid}) ->
+    % io:format("Pid: ~p", [Pid]),
+    gen_server:cast(Pid, {text, Text}),
+    {noreply, State};
 handle_cast(split_vertical, State1) ->
     State2 = split_vertical(State1),
     % TODO
@@ -77,10 +86,11 @@ terminate(_, _) ->
     ok.
 
 create_first_window(State = #state{next_id = Id}, H, W) ->
-    Window = window(Id, _X = 0, _Y = 0, H, W),
+    Window = #window{pid = Pid} = window(Id, _X = 0, _Y = 0, H, W),
     State#state{h = H,
                 w = W,
                 focused_window_id = Id,
+                focused_window_pid = Pid,
                 windows = [[Window]],
                 next_id = Id + 1}.
 
@@ -109,8 +119,18 @@ split_vertical( State = #state{windows = Windows1,
     cs_io:clear_screen(),
     draw(Windows3),
 
+    [#window{pid = FocusedWindowPid}] =
+        lists:filter(
+            fun(#window{id = NextId_}) when NextId_ == NextId ->
+                true;
+                (_) ->
+                false
+            end,
+            lists:flatten(Windows3)),
+
     State#state{windows = Windows3,
-                focused_window_id = NextId}.
+                focused_window_id = NextId,
+                focused_window_pid = FocusedWindowPid}.
 
 rotate_right(_WindowId, Windows = []) ->
     Windows;
