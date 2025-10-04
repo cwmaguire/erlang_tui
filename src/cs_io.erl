@@ -163,19 +163,21 @@ escape_code({screen_size, H, W}) ->
 parse($q) ->
     quit();
 parse($u) ->
-    io:put_chars(cs_esc:format("Double Underline", [double_underline]));
+    debug(cs_esc:format("Double Underline", [double_underline]));
 parse($s) ->
-    io:put_chars(cs_esc:get_screen_size());
+    debug(cs_esc:get_screen_size());
 parse($S) ->
-    io:put_chars(cs_esc:get_textarea_size());
+    debug(cs_esc:get_textarea_size());
 parse($c) ->
-    io:put_chars("@");
+    debug("@");
 parse($C) ->
     clear_screen();
 parse($1) ->
     io:put_chars(cs_esc:clear_col());
+parse($2) ->
+    io:put_chars(cs_esc:clear_screen());
 parse($r) ->
-    io:put_chars("$");
+    debug("$");
 parse($|) ->
 	gen_server:cast(cs_screen, split_vertical);
 % parse([Char | Rest]) ->
@@ -184,11 +186,14 @@ parse($|) ->
 parse(List) when is_list(List) ->
     [parse(Char) || Char <- List];
 parse(Other) ->
-	% Formats {a} as "a"
-	io:format("(~p)", [Other]).
+    cs_screen:text(Other).
 
 publish(Group, {textarea_size, H, W}) ->
 	[Pid ! {textarea_size, H, W} || Pid <- Group].
+
+debug(Text) ->
+    cursor_pos_(5, 5),
+    text(Text).
 
 cursor_pos_(X, Y) ->
 	io:put_chars(cs_esc:cursor_pos(X, Y)).
@@ -201,6 +206,5 @@ clear_screen_() ->
 
 do_atomic_ops_({cursor_pos, X, Y}) ->
 	cursor_pos_(X, Y);
-do_atomic_ops_({write, Str}) ->
+do_atomic_ops_({text, Str}) ->
 	io:put_chars(Str).
-
