@@ -9,11 +9,18 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([text/2]).
+-export([random_file_name/0]).
+
 -record(state, {translate_fun,
                 h = 0,
                 w = 0,
                 has_border = false,
-                cursor_pos}).
+                cursor_pos,
+                temp_file_name}).
+
+text(Pid, Text) ->
+    gen_server:cast(Pid, {text, Text}).
 
 start_link(TranslateFun, {H, W}) ->
     gen_server:start_link(?MODULE,
@@ -23,13 +30,18 @@ start_link(TranslateFun, {H, W}) ->
 init([TranslateFun, {H, W}]) ->
     % gen_server:cast(self, draw),
     {ok, #state{translate_fun = TranslateFun,
-                cursor_pos = {0, 0},
+                cursor_pos = {1, 0}, % I think the rows and columns are 1-based.
                 h = H,
-                w = W}}.
+                w = W,
+                temp_file_name = random_file_name()}}.
 
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
+handle_cast({text, Text}, State = #state{translate_fun = TFun,
+                                         cursor_pos = CursorPos}) ->
+    NewCursorPos = text(TFun, CursorPos, Text),
+    {noreply, State#state{cursor_pos = NewCursorPos}};
 %% cs_screen should send 'draw' once windows are laid out.
 %% Will need translate function.
 handle_cast(draw, State = #state{translate_fun = TFun,
@@ -84,10 +96,20 @@ reset_cursor() ->
 
 draw_status_bar({X, Y}) ->
     %% █ is 9608 (U+2588 where 2588 is hex)
-    Ops = [{cursor_pos, X, Y}, {write, "█"}],
+    Ops = [{cursor_pos, X, Y}, {text, "█"}],
     cs_io:do_atomic_ops(Ops).
 
 draw_left_border({X, Y}) ->
     %% █ is 9474
-    Ops = [{cursor_pos, X, Y}, {write, "│"}],
+    Ops = [{cursor_pos, X, Y}, {text, "│"}],
     cs_io:do_atomic_ops(Ops).
+
+-define(CHARS, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_").
+
+random_file_name() ->
+    RandBytes = crypto:strong_rand_bytes(40),
+    << <<(char(X))>> || <<X>> <= RandBytes>>.
+
+char(Index) ->
+    Nth = Index rem (length(?CHARS) - 1),
+    lists:nth(Nth + 1, ?CHARS).
