@@ -73,6 +73,16 @@ F2 - Q
 F3 - R 
 F4 - S 
 
+Also, Shift+Option+F6 to Shift+Option+F10 are wrong in iTerm2
+ 
+  I used Claude to find out where the key outputs were:
+
+  See iTerm2/sources/VT100Output.m:565
+
+  Line 563 (case 65): @"\e[15;10~" or @"\e[15;4~"
+  Line 565 (case 66): @"\e[15;10~" or @"\e[15;4~" -- should be 17;4
+
+
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-02   ┃
 ┗━━━━━━━━━━━━━━━━┛
