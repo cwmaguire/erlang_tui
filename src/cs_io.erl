@@ -238,7 +238,7 @@ publish(Group, {textarea_size, H, W}) ->
 	[Pid ! {textarea_size, H, W} || Pid <- Group].
 
 debug_(Text) ->
-    debug_("CSIO: " ++ Text ++ "                    ", 1, 5).
+    debug_("CSIO: " ++ Text ++ "<                    ", 1, 6).
 
 debug_(Text, X, Y) ->
     cursor_pos_(X, Y),
