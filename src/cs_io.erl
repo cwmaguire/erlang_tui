@@ -191,30 +191,40 @@ parse(11) ->
 parse(12) ->
     debug_("Focus ->"),
     cs_screen:focus(right);
-parse($u) ->
-    debug_(cs_esc:format("Double Underline", [double_underline])),
-    text(cs_esc:format("Double Underline", [double_underline]));
-parse($s) ->
-    debug_(cs_esc:get_screen_size()),
-    text(cs_esc:get_screen_size());
-parse($S) ->
-    debug_(cs_esc:get_textarea_size()),
-    text(cs_esc:get_textarea_size());
-parse($c) ->
-    debug_("@");
-parse($C) ->
-    clear_screen();
-parse($1) ->
-    debug_(cs_esc:clear_col()),
-    text(cs_esc:clear_col());
-parse($2) ->
-    debug_(cs_esc:clear_screen()),
-    text(cs_esc:clear_screen());
-parse($r) ->
-    debug_("$"),
-    text("$");
-parse($|) ->
-	gen_server:cast(cs_screen, split_vertical);
+%parse($u) ->
+%    debug_(cs_esc:format("Double Underline", [double_underline])),
+%    text(cs_esc:format("Double Underline", [double_underline]));
+%parse($s) ->
+%    debug_(cs_esc:get_screen_size()),
+%    text(cs_esc:get_screen_size());
+%parse($S) ->
+%    debug_(cs_esc:get_textarea_size()),
+%    text(cs_esc:get_textarea_size());
+%parse($c) ->
+%    debug_("@");
+% parse($C) ->
+    % clear_screen();
+%parse($1) ->
+%    debug_(cs_esc:clear_col()),
+%    text(cs_esc:clear_col());
+%parse($2) ->
+%    debug_(cs_esc:clear_screen()),
+%    text(cs_esc:clear_screen());
+%parse($3) ->
+%    debug_("                                                    "
+%           "                                                    ",
+%           1, 4);
+%parse($4) ->
+%    debug_("\\e O"),
+%    text([27, $O]);
+%parse($5) ->
+%    debug_("\\e O C"),
+%    text([27, $O, $C]);
+%parse($r) ->
+%    debug_("$"),
+%    text("$");
+%parse($|) ->
+%gen_server:cast(cs_screen, split_vertical);
 % parse([Char | Rest]) ->
     % parse(Char),
     % parse(Rest);
