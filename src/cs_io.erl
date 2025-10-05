@@ -68,6 +68,9 @@ handle_cast(clear_screen, State) ->
 handle_cast({text, Text}, State) ->
     text(Text),
     {noreply, State};
+% handle_cast(Atom, State) when is_atom(Atom) ->
+    % handle_atom(Atom),
+    % {noreply, State};
 handle_cast({textarea_size, H, W}, State = #state{monitor = undefined}) ->
 	{Monitor, Group} = pg:monitor(textarea_size),
 	publish(Group, {textarea_size, H, W}),
@@ -168,6 +171,9 @@ maybe_parse(MaybeEscapeCode, Char) ->
             MaybeEscapeCode ++ [Char]
     end.
 
+escape_code(f1) ->
+    debug_("F1", 20, 20),
+    io:put_chars(cs_esc:clear_screen());
 escape_code({text_area, H, W}) ->
     Debug = lists:flatten(io_lib:format("text area ~p,~p", [H,W])),
     debug_(Debug, 1, 10),

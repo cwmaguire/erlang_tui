@@ -232,26 +232,76 @@ get_textarea_size() ->
 -define(B, B > 47, B < 58).
 -define(C, C > 47, C < 58).
 -define(D, D > 47, D < 58).
--define(E, 27,$[).
+-define(E, 27).
+-define(CSI, 27,$[).
 -define(F, F > 47, F < 58).
 -define(G, G > 47, G < 58).
 
 parse_escape(Chars) -> esc(Chars).
 
 esc(X=[?E]) -> X;
+esc(X=[?CSI]) -> X;
 
-esc(X=[?E,$[]) -> X;
-esc(_=[?E,$[,$A]) -> {escape, up};
-esc(_=[?E,$[,$B]) -> {escape, down};
-esc(_=[?E,$[,$C]) -> {escape, right};
-esc(_=[?E,$[,$D]) -> {escape, left};
+esc(X=[?E,$O]) -> X;
+esc(_=[?E,$O,$P]) -> {escape, f1};
+esc(_=[?E,$O,$Q]) -> {escape, f2};
+esc(_=[?E,$O,$R]) -> {escape, f3};
+esc(_=[?E,$O,$S]) -> {escape, f4};
 
-esc(X=[?E,$8]) -> X;
-esc(X=[?E,$8,$;]) -> X;
-esc(X=[?E,$8,$;|_]) -> esc(text_area, X);
-esc(X=[?E,$9]) -> X;
-esc(X=[?E,$9,$;]) -> X;
-esc(X=[?E,$9,$;|_]) -> esc(screen_size, X);
+esc(X=[?CSI,$1]) -> X;
+esc(X=[?CSI,$1,$5]) -> X;
+esc(_=[?CSI,$1,$5,$~]) -> {escape, f5};
+esc(X=[?CSI,$1,$7]) -> X;
+esc(_=[?CSI,$1,$7,$~]) -> {escape, f6};
+esc(X=[?CSI,$1,$8]) -> X;
+esc(_=[?CSI,$1,$8,$~]) -> {escape, f7};
+esc(X=[?CSI,$1,$9]) -> X;
+esc(_=[?CSI,$1,$9,$~]) -> {escape, f8};
+esc(X=[?CSI,$2]) -> X;
+esc(X=[?CSI,$2,$0]) -> X;
+esc(_=[?CSI,$2,$0,$~]) -> {escape, f9};
+esc(X=[?CSI,$2,$1]) -> X;
+esc(_=[?CSI,$2,$1,$~]) -> {escape, f10};
+esc(X=[?CSI,$2,$3]) -> X;
+esc(_=[?CSI,$2,$3,$~]) -> {escape, f11};
+esc(X=[?CSI,$2,$4]) -> X;
+esc(_=[?CSI,$2,$4,$~]) -> {escape, f12};
+
+esc(X=[?CSI]) -> X;
+esc(_=[?CSI,$A]) -> {escape, up};
+esc(_=[?CSI,$B]) -> {escape, down};
+esc(_=[?CSI,$C]) -> {escape, right};
+esc(_=[?CSI,$D]) -> {escape, left};
+
+esc(X=[?CSI,$1]) -> X;
+esc(X=[?CSI,$1,$;]) -> X;
+esc(X=[?CSI,$1,$;,$2]) -> X;
+esc(_=[?CSI,$1,$;,$2,$P]) -> {escape, shift_f1};
+
+esc(X=[?CSI,$1,$;,$3]) -> X;
+esc(_=[?CSI,$1,$;,$3,$P]) -> {escape, option_f1};
+
+esc(X=[?CSI,$1,$;,$4]) -> X;
+esc(_=[?CSI,$1,$;,$4,$P]) -> {escape, shift_option_f1};
+
+esc(X=[?CSI,$1,$;,$5]) -> X;
+esc(_=[?CSI,$1,$;,$5,$P]) -> {escape, ctrl_f1};
+
+esc(X=[?CSI,$1,$;,$6]) -> X;
+esc(_=[?CSI,$1,$;,$6,$P]) -> {escape, shift_ctrl_f1};
+
+esc(X=[?CSI,$1,$;,$7]) -> X;
+esc(_=[?CSI,$1,$;,$7,$P]) -> {escape, option_ctrl_f1};
+
+esc(X=[?CSI,$1,$;,$8]) -> X;
+esc(_=[?CSI,$1,$;,$8,$P]) -> {escape, shift_option_ctrl_f1};
+
+esc(X=[?CSI,$8]) -> X;
+esc(X=[?CSI,$8,$;]) -> X;
+esc(X=[?CSI,$8,$;|_]) -> esc(text_area, X);
+esc(X=[?CSI,$9]) -> X;
+esc(X=[?CSI,$9,$;]) -> X;
+esc(X=[?CSI,$9,$;|_]) -> esc(screen_size, X);
 esc(_) -> not_escape.
 
 %        E   8
