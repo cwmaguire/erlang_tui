@@ -259,9 +259,10 @@ parse2(11) -> "\\v";
 parse2(12) -> "\\f";
 parse2(13) -> "\\r";
 parse2(?ESC) -> "\\e";
-parse2(N) when N > 0, N < 8 -> [$\ | integer_to_list(N)];
-parse2(N) when N > 13, N < 32 -> [$\ | integer_to_list(N)];
-parse2(N) when N > 126 -> [$\ | integer_to_list(N)];
+parse2(N) when N > 0, N < 8 -> [$\\ | integer_to_list(N)];
+parse2(N) when N > 13, N < 32 -> [$\\ | integer_to_list(N)];
+parse2(N) when N > 126 -> [$\\ | integer_to_list(N)];
+parse2($~) -> "~~";
 parse2(PrintableChar) -> PrintableChar.
 
 text(Text) ->
