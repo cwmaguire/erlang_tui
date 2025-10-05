@@ -183,7 +183,8 @@ escape_code(f1) ->
     debug_("F1", 20, 20),
     io:put_chars(cs_esc:clear_screen());
 escape_code(f2) ->
-    debug_("F2", 20, 20);
+    debug_("F2", 20, 20),
+    gen_server:cast(cs_screen, split_vertical);
 escape_code(f3) ->
     debug_("F3", 20, 20);
 escape_code(f4) ->
@@ -229,16 +230,16 @@ escape_code({screen_size, H, W}) ->
 
 parse($q) ->
     quit();
-parse(8) ->
+parse(8) ->  % \b    ctrl-left
     debug_("Focus <-"),
     cs_screen:focus(left);
-parse(10) ->
+parse(10) -> % \n    ctrl-down
     debug_("Focus down"),
     cs_screen:focus(down);
-parse(11) ->
+parse(11) -> % \v    ctrl-up
     debug_("Focus up"),
     cs_screen:focus(up);
-parse(12) ->
+parse(12) -> % \f    ctrl-right
     debug_("Focus ->"),
     cs_screen:focus(right);
 %parse($u) ->
