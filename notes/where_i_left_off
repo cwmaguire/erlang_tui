@@ -82,6 +82,34 @@ Also, Shift+Option+F6 to Shift+Option+F10 are wrong in iTerm2
   Line 563 (case 65): @"\e[15;10~" or @"\e[15;4~"
   Line 565 (case 66): @"\e[15;10~" or @"\e[15;4~" -- should be 17;4
 
+Which window has focus ... No, which window is to the LEFT of the window that has focus?
+
+ ┌─┐
+ │X│ No window to the left
+ └─┘
+ ┌─┐
+ │X│ No window to the left
+ ├─┤
+ │Y│
+ └─┘
+ ┌───┬───┐
+ │ Z │   │ Move focus from X to Z.
+ ├───┤ X │ Previous column, first row.
+ │ Y │   │ [[[[Z],[Y]][X]]]
+ └───┴───┘ Store [[Z],[Y]] as previous column,
+           then when we hit X, we can go into
+           the previous column and get the ...
+	   rightmost column of the top row?
+
+ ┌───┬───┬───┐
+ │ A │ B │   │ X should go to B: rightmost column
+ ├───┴───┤ X │ of top row of previous entity.
+ │   C   │   │
+ └───────┴───┘
+
+Save the entity before X, then if X is the focused window, we can go back and find the top right
+window in the previous entity.
+
 
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-02   ┃
