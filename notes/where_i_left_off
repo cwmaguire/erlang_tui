@@ -70,11 +70,11 @@ So you add up the modifier flags and then add that to 1.
 Everything past F4 uses ~ as the terminator, but:
 F1 - P -> 1;2P -> 1;3P -> 1;4P -> 1;6P -> 1;7P -> 1;8P  (Ctrl+F1, `1;5P` doesn't work)
 F2 - Q
-F3 - R 
-F4 - S 
+F3 - R
+F4 - S
 
 Also, Shift+Option+F6 to Shift+Option+F10 are wrong in iTerm2
- 
+
   I used Claude to find out where the key outputs were:
 
   See iTerm2/sources/VT100Output.m:565
@@ -99,7 +99,7 @@ Which window has focus ... No, which window is to the LEFT of the window that ha
  └───┴───┘ Store [[Z],[Y]] as previous column,
            then when we hit X, we can go into
            the previous column and get the ...
-	   rightmost column of the top row?
+           rightmost column of the top row?
 
  ┌───┬───┬───┐
  │ A │ B │   │ X should go to B: rightmost column
@@ -109,6 +109,181 @@ Which window has focus ... No, which window is to the LEFT of the window that ha
 
 Save the entity before X, then if X is the focused window, we can go back and find the top right
 window in the previous entity.
+
+  - keep [[[A,B],[C]]] as the previous entity
+  - find focused window
+  - find top right entity in [[[A,B],[C]]]
+    - row has 1 column [[A,B],[C]]
+    - column has 2 rows, take the first [A,B]
+    - take the last column in the row B
+
+  "top" means the first row
+  "bottom" means the last row
+  "left" measn the first column
+  "right" means the last column
+
+  Store the current entity (row or column)
+  Track whether it's a row or column for up/down vs. left/right
+  Check the next entity ... how do I know what the next entity is?
+
+ ┌───┬───┬───┐ 1) start in top column [[[[X,B],[C]],A]] as there's only ever one
+ │ X │ B │   │ 2) check first row [[X,B],[C]], A
+ ├───┴───┤ A │ 3) check the first column [[X,B],[C]]
+ │   C   │   │ 4) check first row [X,B]
+ └───────┴───┘ 5) check first column X - match
+
+               What was the previous entity at:
+               1? none
+               2? none
+               3? none
+               4? none
+               5? none - you can't move left
+
+ ┌───┬───┬───┐ 1) start in top column [[[[A,X],[C]],B]] as there's only ever one
+ │ A │ X │   │ 2) check first row [[A,X],[C]], B
+ ├───┴───┤ B │ 3) check the first column [[A,X],[C]]
+ │   C   │   │ 4) check first row [A,X]
+ └───────┴───┘ 5) check first column A
+               6) check the second column
+
+               What was the previous entity at:
+               1? none
+               2? none
+               3? none
+               4? none
+               5? none
+               6? A - focus can move to A
+
+ ┌───┬───┬───┐ 1) start in top column [[[[A,B],[X]],C]] as there's only ever one
+ │ A │ B │   │ 2) check first row [[A,B],[X]],C
+ ├───┴───┤ C │ 3) check the first column [[A,B],[X]]
+ │   X   │   │ 4) check first row [A,B]
+ └───────┴───┘ 5) check first column A
+               6) check the second column B
+               7) check the second row [X]
+               8) check the first column X
+
+               What was the previous entity at:
+               1? none
+               2? none
+               3? none
+               4? none
+               5? none
+               6? A
+               7? [A,B]
+               8? [A,B]
+
+               I'm missing something here, I think
+
+               What if I wanted to go up? I go up & left by default
+
+ ┌───┬───┬───┐  1) start in top column [[[[A,B],[X,D]],C]] as there's only ever one
+ │ A │ B │   │  2) check first row [[A,B],[X,D]],C
+ ├───┼───┤ C │  3) check the first column [[A,B],[X,D]]
+ │ X │ D │   │  4) check first row [A,B]
+ └───┴───┴───┘  5) check first column A
+                6) check the second column B
+                7) check the second row [X,D]
+                8) check the first column X
+
+                What was the previous entity at:
+                1? none
+                2? none
+                3? none
+                4? none
+                5? none
+                6? A
+                7? [A,B]
+                8? [A,B]
+
+                You set the last element whenever you leave something.
+                At step 6 we left column A for column B.
+                At step 7 we left row [A,B] for row [X,D]
+
+                Should we go left to [A,B]? It's a above us.
+
+                If we're going left we should only track columns.
+                We might have to track multiple columns in a stack.
+
+┌───┬───┬───┐   1) start in top column [[[[A,B],[D,X]],C]] as there's only ever one
+│ A │ B │   │   2) check first row [[A,B],[D,X]],C
+├───┼───┤ C │   3) check the first column [[A,B],[D,X]]
+│ D │ X │   │   4) check first row [A,B]
+└───┴───┴───┘   5) check first column A
+                6) check the second column B
+                7) check the second row [D,X]
+                8) check the first column D
+                9) check the second column X
+
+                What was the previous entity at:
+                1? none
+                2? none
+                3? none
+                4? none
+                5? none
+                6? A
+                7? [A,B]
+                8? D
+
+                We go left to D.
+                Can we go
+
+ ┌───┬───┬───┐  1) start in top column [[C, [[A,B],[D,X]]]] as there's only ever one
+ │   │ A │ B │  2) check first row C, [[A,B],[D,X]]
+ │ C ├───┼───┤  3) check the first column C
+ │   │ D │ X │  4) check the second column [[A,B],[D,X]]
+ └───┴───┴───┘  5) check the first row [A,B]
+                6) check the first column A
+                7) check the second column B
+                8) check the second row [D,X]
+                9) check the first column D
+               10) check the second column X
+
+                What was the previous entity at:
+                1? none
+                2? none
+                3? none
+                4? C
+                5? C
+                6? C
+                7? A
+                8? B
+                9? B
+               10? D (works)
+
+ ┌───┬───┬───┐  1) start in top column [[C, [[A,B],[X,D]]]] as there's only ever one
+ │   │ A │ B │  2) check first row C, [[A,B],[X,D]]
+ │ C ├───┼───┤  3) check the first column C
+ │   │ X │ D │  4) check the second column [[A,B],[X,D]]
+ └───┴───┴───┘  5) check the first row [A,B]
+                6) check the first column A
+                7) check the second column B
+                8) check the second row [X,D]
+                9) check the first column X
+
+                What was the previous entity at:
+                1? none
+                2? none
+                3? none
+                4? C
+                5? C
+                6? C
+                7? A
+                8? B  - should revert to C because we've exited a row
+                9? B  (doesn't work, should be C)
+
+If we're going left, we track a list of the most recent columns. We track previous columns in this
+rows, and previous columns in parent rows.
+
+ ┌───┬───────────┐ [[A, [[B],[C,[[D,E],[X,F]]]]]]
+ │   │     B     │
+ │   ├───┬───┬───┤ We should be tracking columns:
+ │ A │   │ D │ E │ A
+ │   │ C ├───┼───┤ A,B
+ │   │   │ X │ F │ A,C   <- pop B off the stack, we've exited that row
+ └───┴───┴───┴───┘ A,C,D
+                   A,C   <- pop D off the stack, we've exited that row
+
 
 
 ┏━━━━━━━━━━━━━━━━┓
