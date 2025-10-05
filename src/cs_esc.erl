@@ -238,8 +238,14 @@ get_textarea_size() ->
 
 parse_escape(Chars) -> esc(Chars).
 
-% esc(X=[27]) -> X;
 esc(X=[?E]) -> X;
+
+esc(X=[?E,$[]) -> X;
+esc(_=[?E,$[,$A]) -> {escape, up};
+esc(_=[?E,$[,$B]) -> {escape, down};
+esc(_=[?E,$[,$C]) -> {escape, right};
+esc(_=[?E,$[,$D]) -> {escape, left};
+
 esc(X=[?E,$8]) -> X;
 esc(X=[?E,$8,$;]) -> X;
 esc(X=[?E,$8,$;|_]) -> esc(text_area, X);
