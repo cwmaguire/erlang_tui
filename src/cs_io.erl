@@ -171,9 +171,53 @@ maybe_parse(MaybeEscapeCode, Char) ->
             MaybeEscapeCode ++ [Char]
     end.
 
+escape_code(up) ->
+    debug_("up", 20, 20);
+escape_code(down) ->
+    debug_("down", 20, 20);
+escape_code(left) ->
+    debug_("left", 20, 20);
+escape_code(right) ->
+    debug_("right", 20, 20);
 escape_code(f1) ->
     debug_("F1", 20, 20),
     io:put_chars(cs_esc:clear_screen());
+escape_code(f2) ->
+    debug_("F2", 20, 20);
+escape_code(f3) ->
+    debug_("F3", 20, 20);
+escape_code(f4) ->
+    debug_("F4", 20, 20);
+escape_code(f5) ->
+    debug_("F5", 20, 20);
+escape_code(f6) ->
+    debug_("F6", 20, 20);
+escape_code(f7) ->
+    debug_("F7", 20, 20);
+escape_code(f8) ->
+    debug_("F8", 20, 20);
+escape_code(f9) ->
+    debug_("F9", 20, 20);
+escape_code(f10) ->
+    debug_("F10", 20, 20);
+escape_code(f11) ->
+    debug_("F11", 20, 20);
+escape_code(f12) ->
+    debug_("F12", 20, 20);
+escape_code(shift_f1) ->
+    debug_("Shift+F12", 20, 20);
+escape_code(option_f1) ->
+    debug_("Option+F12", 20, 20);
+escape_code(shift_option_f1) ->
+    debug_("Shift+Option+F12", 20, 20);
+escape_code(ctrl_f1) ->
+    debug_("Ctrl+F12", 20, 20);
+escape_code(shift_ctrl_f1) ->
+    debug_("Shift+Ctrl+F12", 20, 20);
+escape_code(option_ctrl_f1) ->
+    debug_("Option+Ctrl+F12", 20, 20);
+escape_code(shift_option_ctrl_f1) ->
+    debug_("Shift+Option+Ctrl+F12", 20, 20);
 escape_code({text_area, H, W}) ->
     Debug = lists:flatten(io_lib:format("text area ~p,~p", [H,W])),
     debug_(Debug, 1, 10),
