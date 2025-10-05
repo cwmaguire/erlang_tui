@@ -250,7 +250,7 @@ cursor_pos_(X, Y) ->
 debug_text(Text) ->
     Flattened = lists:flatten(Text),
     Parsed = [parse2(Char) || Char <- Flattened],
-    io:format(Parsed).
+    io:put_chars(Parsed).
 
 parse2(8) -> "\\b";
 parse2(9) -> "\\t";
