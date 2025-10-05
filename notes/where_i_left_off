@@ -46,6 +46,33 @@ snippet
 chunk
 text - confusing: portion of text is also text
 
+A note on Function keys and modifiers:
+
+Using F12 as an example because F1-F4 are a litle goofy.
+
+The plain F12 key has a Flag of 1, which is not shown
+
+Plain   =  1
+Shift   = +1
+Option  = +2
+Control = +4
+
+ESC[24~    F12   Plain (1)
+ESC[24;2~  F12 + Plain (1) + Shift (1) = 2
+ESC[24;3~  F12 + Plain (1) + Option (2) = 3
+ESC[22;4~  F12 + Plain (1) + Shift (1) + Option (2) = 4
+ESC[24;6~  F12 + Plain (1) + Shift (1) + Control (4) = 6
+ESC[24;7~  F12 + Plain (1) + Option (2) + Control (4) = 7
+ESC[24;8~  F12 + Plain (1) + Shift (1) + Option (2) + Control (4) = 7
+
+So you add up the modifier flags and then add that to 1.
+
+Everything past F4 uses ~ as the terminator, but:
+F1 - P -> 1;2P -> 1;3P -> 1;4P -> 1;6P -> 1;7P -> 1;8P  (Ctrl+F1, `1;5P` doesn't work)
+F2 - Q
+F3 - R 
+F4 - S 
+
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-02   ┃
 ┗━━━━━━━━━━━━━━━━┛
