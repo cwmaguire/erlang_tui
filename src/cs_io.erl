@@ -32,7 +32,7 @@ quit() ->
 	gen_server:cast(self(), quit).
 
 do_atomic_ops(Ops) ->
-    timer:sleep(25),
+    timer:sleep(5),
 	gen_server:cast(cs_io, {atomic, Ops}).
 
 cursor_pos(X, Y) ->
@@ -169,7 +169,8 @@ escape_code(f2) ->
     debug_("F2", 20, 20),
     gen_server:cast(cs_screen, split_vertical);
 escape_code(f3) ->
-    debug_("F3", 20, 20);
+    debug_("F3", 20, 20),
+    gen_server:cast(cs_screen, split_horizontal);
 escape_code(f4) ->
     debug_("F4", 20, 20);
 escape_code(f5) ->

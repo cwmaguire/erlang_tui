@@ -79,10 +79,10 @@ handle_cast({text, Text}, State = #state{focused_window_pid = Pid}) ->
     gen_server:cast(Pid, {text, Text}),
     {noreply, State};
 handle_cast(split_vertical, State1) ->
-    State2 = split_vertical(State1),
-    % TODO
-    % - add layout
-    % - add draw call
+    State2 = split_window_(vertical,State1),
+    {noreply, State2};
+handle_cast(split_horizontal, State1) ->
+    State2 = split_window_(horizontal, State1),
     {noreply, State2};
 handle_cast(delete, State = #state{focused_window_pid = Pid}) ->
     gen_server:cast(Pid, delete),
@@ -123,16 +123,17 @@ translate_fun(ScreenX, ScreenY) ->
              ScreenY + WindowY}
     end.
 
-get_window(FocusId, Windows) ->
-    Index = #window.id,
-    #window{} = lists:keyfind(FocusId, Index, Windows).
+%% get_window(FocusId, Windows) ->
+%%     Index = #window.id,
+%%     #window{} = lists:keyfind(FocusId, Index, Windows).
 
-split_vertical( State = #state{windows = Windows1,
-                               focused_window_id = FocusId,
-                               next_id = NextId,
-                               h = H,
-                               w = W}) ->
-    Windows2 = split_window(FocusId, NextId, Windows1, vertical, fun window/5),
+split_window_(Direction,
+              State = #state{windows = Windows1,
+                             focused_window_id = FocusId,
+                             next_id = NextId,
+                             h = H,
+                             w = W}) ->
+    Windows2 = split_window(FocusId, NextId, Windows1, Direction, fun window/5),
     Windows3 = layout_windows(Windows2, H, W),
     cs_io:clear_screen(),
     draw(Windows3),
@@ -476,4 +477,4 @@ focus_(right, Id, List, MaybeFound) when is_list(List) ->
         Other ->
             Other
     end.
-    
+%% TODO focus up, down    
