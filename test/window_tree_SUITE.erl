@@ -10,6 +10,7 @@
 -export([test_rotate_right_down/1]).
 -export([test_split_window/1]).
 -export([test_layout_windows/1]).
+-export([test_focus/1]).
 
 -export([split_call/6]).
 -export([split_return/3]).
@@ -22,7 +23,8 @@
 all() ->
     [test_rotate_right_down,
      test_split_window,
-     test_layout_windows].
+     test_layout_windows,
+     test_focus].
 
 % all() -> [test_split_window].
 
@@ -247,13 +249,6 @@ test_layout_windows(_Config) ->
 
     % dbg:stop(),
 
-    % Increase all numbers, jumps over lines with
-    % searches
-    % j/^ *A:nohlj0l?^  *W\d:noh0
-
-    % Do the same, but slowly
-    % :sleep 200mj:sleep 200m:sleep 200m/^ *A:sleep 200m:noh:sleep 200m:sleep 200ml:sleep 200m:sleep 200mj:sleep 200m0:sleep 200m:sleep 200ml:sleep 200m:sleep 200m?^  *W\d:sleep 200m:noh:sleep 200m0
-
 
     W3 = [[Wx, Wy, Wz]],
     E3 = [[#window{id = x, w = 1, h = 1, x = 0, y = 0, has_border = false},
@@ -305,6 +300,84 @@ test_layout_windows(_Config) ->
     dbg:stop(),
 
     ok.
+
+test_focus(_Config) ->
+    % incremente numbers macro
+    %jl0jl0jl0jl0kkkk
+
+    Wx = #window{id = x, pid = 1},
+    Wy = #window{id = y, pid = 2},
+    Wz = #window{id = z, pid = 3},
+    Wa = #window{id = a, pid = 4},
+    _Wb = #window{id = b, pid = 5},
+
+    W1 = [[Wx]],
+    S1 = {state, W1, x, 1, 0, 0, 0},
+    E1 = {state, W1, x, 1, 0, 0, 0},
+    A1 = cs_screen:focus_(left, S1),
+    ?assertEqual(E1, A1),
+
+    W2 = [[Wy, Wx]],
+    S2 = {state, W2, x, 1, 0, 0, 0},
+    E2 = {state, W2, y, 2, 0, 0, 0},
+    A2 = cs_screen:focus_(left, S2),
+    ?assertEqual(E2, A2),
+
+    W3 = [[Wz], [Wy, Wx]],
+    S3 = {state, W3, x, 1, 0, 0, 0},
+    E3 = {state, W3, y, 2, 0, 0, 0},
+    A3 = cs_screen:focus_(left, S3),
+    ?assertEqual(E3, A3),
+
+    W4 = [[Wz, [[Wx],[Wy]]]],
+    S4 = {state, W4, x, 1, 0, 0, 0},
+    E4 = {state, W4, z, 3, 0, 0, 0},
+    A4 = cs_screen:focus_(left, S4),
+    ?assertEqual(E4, A4),
+
+    W5 = [[Wz, [[Wy],[Wx]]]],
+    S5 = {state, W5, x, 1, 0, 0, 0},
+    E5 = {state, W5, z, 3, 0, 0, 0},
+    A5 = cs_screen:focus_(left, S5),
+    ?assertEqual(E5, A5),
+
+    W6 = [[Wz, [[Wy],[[Wa, Wx]]]]],
+    S6 = {state, W6, x, 1, 0, 0, 0},
+    E6 = {state, W6, a, 4, 0, 0, 0},
+    A6 = cs_screen:focus_(left, S6),
+    ?assertEqual(E6, A6),
+
+    W7 = [[Wz, [[Wy],[[Wx, Wa]]]]],
+    S7 = {state, W7, x, 1, 0, 0, 0},
+    E7 = {state, W7, z, 3, 0, 0, 0},
+    A7 = cs_screen:focus_(left, S7),
+    ?assertEqual(E7, A7),
+
+    W8 = [[Wx, Wz]],
+    S8 = {state, W8, x, 1, 0, 0, 0},
+    E8 = {state, W8, x, 1, 0, 0, 0},
+    A8 = cs_screen:focus_(left, S8),
+    ?assertEqual(E8, A8),
+
+    W9 = [[Wx, [[Wz], [Wy]]]],
+    S9 = {state, W9, x, 1, 0, 0, 0},
+    E9 = {state, W9, x, 1, 0, 0, 0},
+    A9 = cs_screen:focus_(left, S9),
+    ?assertEqual(E9, A9),
+
+    ok.
+
+
+%%%%%% Increment Numbers Macro %%%%%%
+
+    % Increase all numbers, jumps over lines with
+    % searches
+    % j/^ *A:nohlj0l?^  *W\d:noh0
+
+    % Do the same, but slowly
+    % :sleep 200mj:sleep 200m:sleep 200m/^ *A:sleep 200m:noh:sleep 200m:sleep 200ml:sleep 200m:sleep 200mj:sleep 200m0:sleep 200m:sleep 200ml:sleep 200m:sleep 200m?^  *W\d:sleep 200m:noh:sleep 200m0
+
+%%%%%% Debugging Scaffolding %%%%%%
 
 dbg_layout() ->
     State = {fun layout_call/6,

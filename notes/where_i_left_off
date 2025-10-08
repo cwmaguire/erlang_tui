@@ -284,7 +284,130 @@ rows, and previous columns in parent rows.
  └───┴───┴───┴───┘ A,C,D
                    A,C   <- pop D off the stack, we've exited that row
 
+ ┌───────────┐ [[[[A],[B]],[[C],[X]]]]
+ │┌───┐ ┌───┐│
+ ││ A │ │ C ││ B and X look like sibling columns, but they aren't.
+ │├───┤ ├───┤│ Can we go from X left to B?
+ ││ B │ │ X ││
+ │└───┘ └───┘│
+ └───────────┘
+   ┌───┬───┐
+   │ A │ C │ This is what the above could look like.
+   ├───┤   │
+   │ B ├───┤
+   │   │ X │
+   └───┴───┘
 
+   ┌───┬───┐
+   │ A │ E │ Should X go to B, or C, or A, or none?
+   ├───┤   │
+   │ B ├───┤ [[[[A],[B],[C],[D]],[[E],[X],[F]]]]
+   ├───┤ X │
+   │ C ├───┤ 1) Check first column (there's always the top level column), 1 row: [[[A],[B],[C],[D]],[[E],[X],[F]]]
+   ├───┤ F │ 2) Check first row, 2 columns: [[A],[B],[C],[D]], [[E],[X],[F]]
+   │ D │   │ 3) Check first column, 4 rows: [A],[B],[C],[D]
+   └───┴───┘ 4) Check first row, 1 column: [A]
+             5) Check first column: A
+                Don't push A onto stack because there's no more columns
+             6) Check second row, 1 column: [B]
+             7) Check first column: B
+                Don't push B onto stack because there's no more columns
+             8) Check third row, 1 column: [C]
+             9) Check first column: C
+                Don't push C onto stack because there's no more columns
+            10) Check fourth row, 1 column: [D]
+            11) Check first column: D
+                Don't push D onto stack because there's no more columns
+            12) Check second column, 3 rows: [E], [X], [F]
+            13) Check first row, 1 column: [E]
+            14) Check first column: E
+                Don't push E onto stack because there's no more columns
+            13) Check second row, 1 column: [X]
+            14) Check first column: X
+                Stack is empty, there is no previous column
+
+            How do we save A as the "top of previous column"?
+
+   ┌───┬───┬───┐ Should X go to A or B? B, closest column in top of previous column
+   │ A │ B │ F │
+   ├───┴───┤   │ If I had two stacks:
+   │   C   ├───┤ - top of previous column
+   ├───────┤ X │   - used when X is in the left-most column of it's row
+   │   D   ├───┤ - previous column
+   ├───────┤ G │
+   │   E   │   │
+   └───────┴───┘
+
+   ┌───┬───┬───┬───┐  So we'd push A onto the "top of column" stack: [A]
+   │   │ B │ C │ G │  Oh, when we go to the BCDEF column we can push B
+   │   ├───┴───┤   │  onto the stack, then C ... but then ... oh, we don't
+   │   │   D   ├───┤  need to pop them off until we exit the row.
+   │ A ├───────┤ X │  X will see [A, B, C] and pop off C
+   │   │   E   ├───┤
+   │   ├───────┤ H │  [[A, [[B, C],[D],[E],[F]],[[G],[X],[H]]]]
+   │   │   F   │   │
+   └───┴───────┴───┘ 
+   1) Top column, 1 row: [A, [[B, C],[D],[E],[F]],[[G],[X],[H]]]
+   2)   1st row, 3 columns: A, [[B, C],[D],[E],[F]], [[G],[X],[H]]
+   3)     1st column, A
+   4)     push A onto top_column_stack: [A]
+   5)   2nd column, 4 rows: [B, C], [D], [E], [F]
+   6)     1st row: [B, C]
+   7)       1st column: B   ... how do I know I'm in the first row of a column? flag?
+   8)       push B onto top_column_stack: [B, A]
+   9)       2nd column: C
+  10)       push C onto top_column_stack: [C, B, A]
+  11)     2nd row, 1 column
+  12)       1st column: D
+  13)     3rd row, 1 column
+  14)       1st column: E
+  15)     4th row, 1 column
+  16)       1st column: F
+  17)  3rd column, 3 rows: [G], [X], [H]
+  18)    1st row, 1 column
+  19)      1st column G
+  20)    2nd row, 1 column
+  21)      1st column X       No sibling column stack, go to top_column_stack
+
+So, we have two stacks, the "top of previous parent columns" stack, and the sibling columns stack.
+
+┌───┐ ┌───────────────┐   [[A, [[B], [C,[[D], [E,[[F],[X]]]]]]]]
+│ A │ │       B       │
+│   │ └───────────────┘   Push A, Push B, Push C, Push D, Push E, push F
+│   │ ┌───┐ ┌─────────┐
+│   │ │   │ │    D    │   Huh, that's not going to work, because then X would
+│   │ │   │ └─────────┘   switch focus to F, not E.
+│   │ │ C │ ┌───┐ ┌───┐
+│   │ │   │ │   │ │ F │   Unless the row added the top-right column upon leaving the row.
+│   │ │   │ │ E │ ├───┤   That wouldn't help it E has focus.
+│   │ │   │ │   │ │ X │
+└───┘ └───┘ └───┘ └───┘   Maybe upon leaving the column? That wouldn't help either, because
+                          'D' is a column inside a row. (Rows *must* be lists.)
+
+                          If you go down a row you don't pass yourself down, you only pass
+                          the current top_column_stack.
+
+                          e.g.
+                          Push A
+                          B doesn't push
+                          Push C
+                          D doesn't push
+                          Push E
+                          F doesn't Push
+                          X pops E
+
+                          If X wasn't there then F would push itself, actually it wouldn't because
+                          ... why? Because B is the top-right of the 2nd column.
+
+                          We're leaving the F ... but if this was E ... well it wouldn't matter
+                          because D and then B are going to push themselves, burying F.
+
+                          If you aren't above the focused window, your parent row-columns will bury
+                          you on the stack.
+
+                          Rules:
+                          1) If you're leaving a column, push onto the stack before descending
+                          2) If you're leaving a row, push onto the stack after descending.
 
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-02   ┃

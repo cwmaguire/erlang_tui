@@ -34,6 +34,7 @@
 -export([handle_info/2]).
 
 -export([focus/1]).
+-export([focus_/2]).
 -export([text/1]).
 -export([split_window/5]).
 -export([rotate_right/2]).
@@ -88,7 +89,6 @@ handle_info({textarea_size, H, W}, State = #state{windows = []}) ->
     draw(Windows),
     {noreply, State2};
 handle_info({textarea_size, H, W}, State) ->
-    % TODO update window sizes
     {noreply, State#state{h = H, w = W}};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -407,8 +407,32 @@ draw([List | Rest]) ->
 draw([]) ->
     ok.
 
-focus_(Direction, State) ->
-    % TODO
-    % - find current window
-    %
-    ok.
+focus_(Direction, State = #state{windows = Windows,
+                                 focused_window_id = Id}) ->
+    {done, {FocusId, FocusPid}} = focus_(Direction, Id, Windows, undefined),
+
+
+    State#state{focused_window_id = FocusId,
+                focused_window_pid = FocusPid}.
+
+focus_(left, Id, #window{id = Id, pid = Pid}, undefined) ->
+    {done, {Id, Pid}};
+focus_(left, Id, #window{id = Id}, {FocusId, FocusPid}) ->
+    {done, {FocusId, FocusPid}};
+focus_(left, _Id, #window{id = Id, pid = Pid}, _) ->
+    {Id, Pid};
+focus_(left, Id, List, LastIdPid) when is_list(List) ->
+    Result =
+        lists:foldl(fun(_Child, {done, IdPid}) ->
+                            {done, IdPid};
+                       (Child, IdPid) ->
+                        focus_(left, Id, Child, IdPid)
+                    end,
+                    LastIdPid,
+                    List),
+    case Result of
+        {done, IdPid} ->
+            {done, IdPid};
+        _ ->
+            LastIdPid
+    end.
