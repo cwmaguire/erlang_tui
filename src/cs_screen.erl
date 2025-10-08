@@ -419,9 +419,11 @@ focus_(Direction, State = #state{windows = Windows,
     Result = focus_(Direction, Id, Windows, undefined),
     case {Direction, Result} of
         {left, {done, {FocusId, FocusPid}}} ->
+            gen_server:cast(FocusPid, focus),
             State#state{focused_window_id = FocusId,
                         focused_window_pid = FocusPid};
         {right, {done, {FocusId, FocusPid}}} ->
+            gen_server:cast(FocusPid, focus),
             State#state{focused_window_id = FocusId,
                         focused_window_pid = FocusPid};
         {right, _} ->

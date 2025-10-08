@@ -63,6 +63,10 @@ handle_cast(delete, State = #state{translate_fun = TFun,
                                          cursor_pos = CursorPos}) ->
     NewCursorPos = delete_(TFun, CursorPos),
     {noreply, State#state{cursor_pos = NewCursorPos}};
+handle_cast(focus, State = #state{translate_fun = TFun,
+                                  cursor_pos = CursorPos}) ->
+    focus(TFun, CursorPos),
+    {noreply, State};
 handle_cast(_Req, State) ->
     {noreply, State}.
 
@@ -97,6 +101,10 @@ delete_(TFun, {X, Y}) ->
     cs_io:do_atomic_ops([{cursor_pos, ScreenX - 1, ScreenY},
                          delete]),
     {X - 1, Y}.
+
+focus(TFun, {X, Y}) ->
+    {ScreenX, ScreenY} = TFun(X, Y),
+    cs_io:cursor_pos(ScreenX, ScreenY).
 
 draw(TFun, H, W, HasBorder) ->
     {X, Y} = TFun(5, 5),
