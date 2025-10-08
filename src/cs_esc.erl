@@ -32,6 +32,7 @@
 -export([get_textarea_size/0]).
 -export([clear_screen/0]).
 -export([clear_col/0]).
+-export([delete/0]).
 
 -export([format/2]).
 -export([cursor_type/1]).
@@ -189,6 +190,9 @@ clear_screen() ->
 clear_col() ->
     [?ESC, ?CTRL_SEQ_INTRO, $0, $g].
 
+delete() ->
+    [?ESC, ?CTRL_SEQ_INTRO, $1, $P].
+
 % CSI Ps n  Device Status Report (DSR).
 %             Ps = 5  ⇒  Status Report.
 %           Result ("OK") is CSI 0 n
@@ -267,13 +271,11 @@ esc(_=[?CSI,$2,$3,$~]) -> {escape, f11};
 esc(X=[?CSI,$2,$4]) -> X;
 esc(_=[?CSI,$2,$4,$~]) -> {escape, f12};
 
-esc(X=[?CSI]) -> X;
 esc(_=[?CSI,$A]) -> {escape, up};
 esc(_=[?CSI,$B]) -> {escape, down};
 esc(_=[?CSI,$C]) -> {escape, right};
 esc(_=[?CSI,$D]) -> {escape, left};
 
-esc(X=[?CSI,$1]) -> X;
 esc(X=[?CSI,$1,$;]) -> X;
 esc(X=[?CSI,$1,$;,$2]) -> X;
 esc(_=[?CSI,$1,$;,$2,$P]) -> {escape, shift_f1};

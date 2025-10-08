@@ -242,6 +242,12 @@ parse(11) -> % \v    ctrl-up
 parse(12) -> % \f    ctrl-right
     debug_("Focus ->"),
     cs_screen:focus(right);
+parse(12) -> % \f    ctrl-right
+    debug_("Focus ->"),
+    cs_screen:focus(right);
+parse(127) -> % delete
+    debug_("Delete"),
+    cs_screen:delete();
 %parse($u) ->
 %    debug_(cs_esc:format("Double Underline", [double_underline])),
 %    text(cs_esc:format("Double Underline", [double_underline]));
@@ -325,4 +331,6 @@ clear_screen_() ->
 do_atomic_ops_({cursor_pos, X, Y}) ->
 	cursor_pos_(X, Y);
 do_atomic_ops_({text, Str}) ->
-	io:put_chars(Str).
+	io:put_chars(Str);
+do_atomic_ops_(delete) ->
+	io:put_chars(cs_esc:delete()).

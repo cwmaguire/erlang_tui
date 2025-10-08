@@ -39,6 +39,7 @@
 -export([split_window/5]).
 -export([rotate_right/2]).
 -export([layout_windows/3]).
+-export([delete/0]).
 
 -record(state, {windows = [],
                 focused_window_id,
@@ -56,6 +57,9 @@ text(?ESC) ->
     gen_server:cast(?MODULE, {text, "ESC"});
 text(Char) ->
     gen_server:cast(?MODULE, {text, [Char]}).
+
+delete() ->
+    gen_server:cast(?MODULE, delete).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -80,6 +84,9 @@ handle_cast(split_vertical, State1) ->
     % - add layout
     % - add draw call
     {noreply, State2};
+handle_cast(delete, State = #state{focused_window_pid = Pid}) ->
+    gen_server:cast(Pid, delete),
+    {noreply, State};
 handle_cast(_Req, State) ->
     {noreply, State}.
 
