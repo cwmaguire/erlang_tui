@@ -303,13 +303,13 @@ test_layout_windows(_Config) ->
 
 test_focus(_Config) ->
     % incremente numbers macro
-    %jl0jl0jl0jl0kkkk
+    %0jl0jl0jl0jl0kkkk
 
     Wx = #window{id = x, pid = 1},
     Wy = #window{id = y, pid = 2},
     Wz = #window{id = z, pid = 3},
     Wa = #window{id = a, pid = 4},
-    _Wb = #window{id = b, pid = 5},
+    Wb = #window{id = b, pid = 5},
 
     W1 = [[Wx]],
     S1 = {state, W1, x, 1, 0, 0, 0},
@@ -364,6 +364,67 @@ test_focus(_Config) ->
     E9 = {state, W9, x, 1, 0, 0, 0},
     A9 = cs_screen:focus_(left, S9),
     ?assertEqual(E9, A9),
+
+    W10 = [[Wx]],
+    S10 = {state, W10, x, 1, 0, 0, 0},
+    E10 = {state, W10, x, 1, 0, 0, 0},
+    A10 = cs_screen:focus_(right, S10),
+    ?assertEqual(E10, A10),
+
+    %% ┌───┐
+    %% │ Y │ X -> X
+    %% ├───┤
+    %% │ X │
+    %% └───┘
+    W11 = [[Wy, Wx]],
+    S11 = {state, W11, x, 1, 0, 0, 0},
+    E11 = {state, W11, x, 1, 0, 0, 0},
+    A11 = cs_screen:focus_(right, S11),
+    ?assertEqual(E11, A11),
+
+    %% ┌───┬───┐
+    %% │ Y │   │ X -> Z
+    %% ├───┤ Z │
+    %% │ X │   │
+    %% └───┴───┘
+    W12 = [[Wy, Wx], [Wz]],
+    S12 = {state, W12, x, 1, 0, 0, 0},
+    E12 = {state, W12, x, 1, 0, 0, 0},
+    A12 = cs_screen:focus_(right, S12),
+    ?assertEqual(E12, A12),
+
+    %% ┌───┬───┬───┬───┐
+    %% │   │   │ A │   │ X -> A
+    %% │ Y │ X ├───┤ Z │
+    %% │   │   │ B │   │
+    %% └───┴───┴───┴───┘
+    W13 = [[Wy, Wx, [[Wa],[Wb]]], [Wz]],
+    S13 = {state, W13, x, 1, 0, 0, 0},
+    E13 = {state, W13, a, 4, 0, 0, 0},
+    A13 = cs_screen:focus_(right, S13),
+    ?assertEqual(E13, A13),
+
+    %% ┌───┬───┬───┐ X -> A
+    %% │   │ Z │   │
+    %% │ Y ├───┤ A │
+    %% │   │ X │   │
+    %% └───┴───┴───┘
+    W14 = [[Wy, [[Wz],[Wx]], Wa]],
+    S14 = {state, W14, x, 1, 0, 0, 0},
+    E14 = {state, W14, a, 4, 0, 0, 0},
+    A14 = cs_screen:focus_(right, S14),
+    ?assertEqual(E14, A14),
+
+    %% ┌───┬───┐
+    %% │ X │   │ Find X, skip Y, focus Z
+    %% ├───┤ Z │
+    %% │ Y │   │
+    %% └───┴───┘
+    W15 = [[[[Wx],[Wy]],Wz]],
+    S15 = {state, W15, x, 1, 0, 0, 0},
+    E15 = {state, W15, z, 3, 0, 0, 0},
+    A15 = cs_screen:focus_(right, S15),
+    ?assertEqual(E15, A15),
 
     ok.
 

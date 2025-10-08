@@ -416,11 +416,17 @@ draw([]) ->
 
 focus_(Direction, State = #state{windows = Windows,
                                  focused_window_id = Id}) ->
-    {done, {FocusId, FocusPid}} = focus_(Direction, Id, Windows, undefined),
-
-
-    State#state{focused_window_id = FocusId,
-                focused_window_pid = FocusPid}.
+    Result = focus_(Direction, Id, Windows, undefined),
+    case {Direction, Result} of
+        {left, {done, {FocusId, FocusPid}}} ->
+            State#state{focused_window_id = FocusId,
+                        focused_window_pid = FocusPid};
+        {right, {done, {FocusId, FocusPid}}} ->
+            State#state{focused_window_id = FocusId,
+                        focused_window_pid = FocusPid};
+        {right, _} ->
+            State
+    end.
 
 focus_(left, Id, #window{id = Id, pid = Pid}, undefined) ->
     {done, {Id, Pid}};
@@ -442,4 +448,30 @@ focus_(left, Id, List, LastIdPid) when is_list(List) ->
             {done, IdPid};
         _ ->
             LastIdPid
+    end;
+focus_(right, Id, #window{id = Id}, undefined) ->
+    {found, column};
+focus_(right, _, #window{}, undefined) ->
+    undefined;
+focus_(right, _, #window{id = Id, pid = Pid}, {found, _}) ->
+    {done, {Id, Pid}};
+focus_(right, Id, List, {found, row}) when is_list(List) ->
+    {found, row};
+focus_(right, Id, List, MaybeFound) when is_list(List) ->
+    Result =
+        lists:foldl(fun(_Child, {done, IdPid}) ->
+                            {done, IdPid};
+                       (Child, MaybeFound_) ->
+                        focus_(right, Id, Child, MaybeFound_)
+                    end,
+                    MaybeFound,
+                    List),
+    case Result of
+        {found, column} ->
+            {found, row};
+        {found, row} ->
+            {found, column};
+        Other ->
+            Other
     end.
+    

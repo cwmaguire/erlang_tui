@@ -1,4 +1,59 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-07   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+┌───┐ ┌───────────────┐  A -> B
+│   │ │       B       │  B -> B
+│   │ └───────────────┘  C -> D
+│   │ ┌───┐ ┌─────────┐  D -> D
+│ A │ │   │ │    D    │  E -> F
+│   │ │   │ └─────────┘  F -> F
+│   │ │ C │ ┌───┐ ┌───┐  X -> X
+│   │ │   │ │   │ │ F │
+│   │ │   │ │ E │ ├───┤
+│   │ │   │ │   │ │ X │
+└───┘ └───┘ └───┘ └───┘
+
+┌───────────────┐ ┌───┐  B -> A
+│       B       │ │   │  D -> C
+└───────────────┘ │   │  F -> E
+┌─────────┐ ┌───┐ │   │  X -> E
+│    D    │ │   │ │ A │  C -> A
+└─────────┘ │   │ │   │  A -> A
+┌───┐ ┌───┐ │ C │ │   │
+│ F │ │   │ │   │ │   │  [[[[B], [[[D], [[[F],[X]], E]], C]], A]]
+├───┤ │ E │ │   │ │   │
+│ X │ │   │ │   │ │   │  After we've found the focused window then next
+└───┘ └───┘ └───┘ └───┘  window we find that hasn't been visited yet is
+                         the new focused window.
+
+                         e.g. check B, check D, check F, check X, X has focus!
+                              D visits the next sibling, E. E hasn't been visited
+                              yet and we've found the current focus, so E becomes
+                              focused.
+┌───┐┌───┐
+│   ││ X │  We can't go down a row, but how do we tell that the next sibling is
+└───┘└───┘  a row?
+┌────────┐
+│    Z   │
+└────────┘
+
+Okay, I ran into this:
+┌───┬───┐
+│ X │   │ How do we skip Y and go to Z?
+├───┤ Z │ I chose to mark that we found X in a colum, and as soon as that list of columns
+│ Y │   │ is done, we flip to say we're on rows. We skip any rows until we find another
+└───┴───┘ column: the only way we can find another column is if there's windows to the right
+          of us, i.e. Z.
+
+          If we had found this: ┌───┬───┬───┐ then we won't flip {found, column} to {found, row}
+                                │ X │ Y │   │ until we've dealt with Y, at which point we've found
+                                ├───┴───┤ A │ a window to the right.
+                                │   Z   │   │ It's only when X is the last column in a row that we
+                                └───────┴───┘ have to skip all the sibling rows.
+
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-04   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

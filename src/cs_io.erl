@@ -68,9 +68,6 @@ handle_cast(clear_screen, State) ->
 handle_cast({text, Text}, State) ->
     text(Text),
     {noreply, State};
-% handle_cast(Atom, State) when is_atom(Atom) ->
-    % handle_atom(Atom),
-    % {noreply, State};
 handle_cast({textarea_size, H, W}, State = #state{monitor = undefined}) ->
 	{Monitor, Group} = pg:monitor(textarea_size),
 	publish(Group, {textarea_size, H, W}),
@@ -88,9 +85,6 @@ handle_cast({debug, "~", X, Y}, State) ->
 handle_cast({debug, Text, X, Y}, State) ->
     debug_(Text, X, Y),
     {noreply, State};
-handle_cast(restart, State) ->
-	start_input_loop(),
-	{noreply, State};
 handle_cast(quit, State) ->
     {stop, normal, State}; 
 handle_cast(Req, State) ->
@@ -117,26 +111,15 @@ terminate(_, _) ->
 	ok.
 
 start() ->
-    % ok = shell:start_interactive({noshell, raw}),
 	tui_mode(true),
-	% start_input_loop(),
 	get_textarea_size().
 
 tui_mode(true) ->
-    io:put_chars(cs_esc:alternate_screen_buffer(true)),
-	io:put_chars(cs_esc:show_cursor(false));
+    io:put_chars(cs_esc:alternate_screen_buffer(true));
+	%io:put_chars(cs_esc:show_cursor(false));
 tui_mode(false) ->
 	io:put_chars(cs_esc:show_cursor(true)),
     io:put_chars(cs_esc:alternate_screen_buffer(false)).
-
-start_input_loop() ->
-	Self = self(),
-    spawn_monitor(fun() -> input_loop(Self) end).
-
-input_loop(Parent) ->
-    Chars = io:get_chars('', 1024),  % Blocks until a char is available
-    gen_server:cast(Parent, {input, Chars}),
-    input_loop(Parent).
 
 get_textarea_size() ->
 	io:put_chars(cs_esc:get_textarea_size()).
