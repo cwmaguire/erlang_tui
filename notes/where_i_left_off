@@ -1,4 +1,46 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-08   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Move focus up
+
+┌───┐ ┌───────────────┐  A -> A
+│   │ │       B       │  B -> B
+│   │ └───────────────┘  C -> B
+│   │ ┌───┐ ┌─────────┐  D -> B
+│ A │ │   │ │    D    │  E -> D
+│   │ │   │ └─────────┘  F -> D
+│   │ │ C │ ┌───┐ ┌───┐  X -> F
+│   │ │   │ │   │ │ F │
+│   │ │   │ │ E │ ├───┤  [[A, [[B], [[c],[[D],[[E],[[F],[X]]]]]]]]  
+│   │ │   │ │   │ │ X │
+└───┘ └───┘ └───┘ └───┘  
+                         
+A: parent row is undefined
+B: parent row is undefined                                                  
+C: parent row is B                                                          
+   
+   How do we store parent row?                                              
+                                                     
+   [[ ... first row ... ]]                                                  
+                                                     
+   Previous row == undefined.                                               
+                                                                             
+   Enter 2nd column, first row, i.e. [B]
+   Set window = head of row                                                 
+                                                                             
+   How do we know if we're in a row?                                        
+   I think we have to flip back and forth from 'row'
+   to 'column'.
+
+   When we enter a row we set {row, undefined}.
+   When we hit our first window, we set {row, FirstWindow}
+
+   We can't set our first window until we leave that window, ...
+   except that if the window was focused it doesn't matter.
+
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-07   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

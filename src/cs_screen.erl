@@ -46,7 +46,18 @@
                 focused_window_pid,
                 next_id = 1,
                 h = 0,
-                w = 0}).
+                w = 0,
+                notify_fun = fun gen_server:cast/2}).
+
+-type window() :: {integer(), pid()}.
+-type pos() :: first | rest.
+-type type() :: row | col.
+
+-record(up, {type = row :: type(),
+             parent = undefined :: window() | undefined,
+             win = undefined :: window() | undefined,
+             pos = first :: pos(),
+             new = undefined :: window() | undefined}).
 
 focus(Direction) ->
     gen_server:cast(?MODULE, {focus, Direction}).
@@ -416,19 +427,24 @@ draw([]) ->
     ok.
 
 focus_(Direction, State = #state{windows = Windows,
-                                 focused_window_id = Id}) ->
+                                 focused_window_id = Id,
+                                 notify_fun = NotifyFun}) ->
     Result = focus_(Direction, Id, Windows, undefined),
     case {Direction, Result} of
         {left, {done, {FocusId, FocusPid}}} ->
-            gen_server:cast(FocusPid, focus),
+            NotifyFun(FocusPid, focus),
             State#state{focused_window_id = FocusId,
                         focused_window_pid = FocusPid};
         {right, {done, {FocusId, FocusPid}}} ->
-            gen_server:cast(FocusPid, focus),
+            NotifyFun(FocusId, focus),
             State#state{focused_window_id = FocusId,
                         focused_window_pid = FocusPid};
         {right, _} ->
-            State
+            State;
+        {up, {done, {FocusId, FocusPid}}} ->
+            NotifyFun(FocusId, focus),
+            State#state{focused_window_id = FocusId,
+                        focused_window_pid = FocusPid}
     end.
 
 focus_(left, Id, #window{id = Id, pid = Pid}, undefined) ->
@@ -458,7 +474,7 @@ focus_(right, _, #window{}, undefined) ->
     undefined;
 focus_(right, _, #window{id = Id, pid = Pid}, {found, _}) ->
     {done, {Id, Pid}};
-focus_(right, Id, List, {found, row}) when is_list(List) ->
+focus_(right, _Id, List, {found, row}) when is_list(List) ->
     {found, row};
 focus_(right, Id, List, MaybeFound) when is_list(List) ->
     Result =
@@ -476,5 +492,86 @@ focus_(right, Id, List, MaybeFound) when is_list(List) ->
             {found, column};
         Other ->
             Other
-    end.
-%% TODO focus up, down    
+    end;
+focus_(up, Id, Windows, undefined) ->
+    #up{new = Window} = focus_(up, Id, Windows, #up{type = col}),
+    {done, Window};
+focus_(up,
+       Id,
+       #window{id = Id, pid = Pid},
+       #up{win = undefined,
+           parent = undefined}) ->
+    #up{new = {Id, Pid}};
+focus_(up,
+       Id,
+       #window{id = Id},
+       #up{win = undefined,
+           parent = {PId, PPid}}) ->
+    #up{new = {PId, PPid}};
+focus_(up,
+       Id,
+       #window{id = Id},
+       #up{win = {WId, WPid}}) ->
+    #up{new = {WId, WPid}};
+focus_(up,
+       Id,
+       #window{id = Id, pid = Pid},
+       Up = #up{}) ->
+    Up#up{win = {Id, Pid}};
+focus_(up,
+       _Id,
+       #window{},
+       Up = #up{}) ->
+    Up;
+focus_(up,
+       Id,
+       _Column = [Row | Rest],
+       Up = #up{type = col,
+                pos = first}) ->
+    #up{win = Window, new = New} = focus_(up, Id, Row, Up#up{type = row, win = undefined}),
+    Up2 =
+        lists:foldl(fun(Row_, Acc) ->
+                        focus_(up, Id, Row_, Acc)
+                    end,
+                    #up{type = row, win = Window, parent = undefined, pos = rest, new = New},
+                    Rest),
+    Up2#up{parent = Up#up.parent}; 
+focus_(up,
+       Id,
+       _Column = [Row | Rest],
+       Up = #up{type = col,
+                pos = rest}) ->
+    #up{win = Window, new = New} = focus_(up, Id, Row, Up#up{type = row, win = undefined}),
+    Up2 = 
+        lists:foldl(fun(Row_, Acc) ->
+                        focus_(up, Id, Row_, Acc)
+                    end,
+                    Up#up{type = row, win = Window, parent = undefined, pos = rest, new = New},
+                    Rest),
+    Up2#up{parent = Up#up.parent};
+focus_(up,
+       Id,
+       _Row = [Col | Rest],
+       Up = #up{type = row,
+                pos = first}) ->
+    #up{win = Window, new = New} = focus_(up, Id, Col, Up#up{type = col, win = undefined}),
+    Up2 =
+        lists:foldl(fun(Col_, Acc) ->
+                        focus_(up, Id, Col_, Acc)
+                    end,
+                    #up{type = col, win = Window, parent = undefined, pos = rest, new = New}, %% removing parent might be redundant
+                    Rest),
+    Up2#up{parent = Up#up.parent}; 
+focus_(up,
+       Id,
+       _Row = [ColOrWin | Rest],
+       Up = #up{type = row,
+                pos = rest}) ->
+    #up{win = Window, new = New} = focus_(up, Id, ColOrWin, Up#up{type = col, win= undefined}),
+    Up2 = 
+        lists:foldl(fun(ColOrWin_, Acc) ->
+                        focus_(up, Id, ColOrWin_, Acc)
+                    end,
+                    Up#up{type = col, win= Window, parent = undefined, pos = rest, new = New},
+                    Rest),
+    Up2#up{parent = Up#up.parent}.

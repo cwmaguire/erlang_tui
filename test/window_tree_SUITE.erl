@@ -304,6 +304,8 @@ test_layout_windows(_Config) ->
 test_focus(_Config) ->
     % incremente numbers macro
     %0jl0jl0jl0jl0kkkk
+    
+    Noop = fun(_, _) -> ok end,
 
     Wx = #window{id = x, pid = 1},
     Wy = #window{id = y, pid = 2},
@@ -312,62 +314,65 @@ test_focus(_Config) ->
     Wb = #window{id = b, pid = 5},
 
     W1 = [[Wx]],
-    S1 = {state, W1, x, 1, 0, 0, 0},
-    E1 = {state, W1, x, 1, 0, 0, 0},
+    S1 = {state, W1, x, 1, 0, 0, 0, Noop},
+    E1 = {state, W1, x, 1, 0, 0, 0, Noop},
     A1 = cs_screen:focus_(left, S1),
     ?assertEqual(E1, A1),
 
     W2 = [[Wy, Wx]],
-    S2 = {state, W2, x, 1, 0, 0, 0},
-    E2 = {state, W2, y, 2, 0, 0, 0},
+    S2 = {state, W2, x, 1, 0, 0, 0, Noop},
+    E2 = {state, W2, y, 2, 0, 0, 0, Noop},
     A2 = cs_screen:focus_(left, S2),
     ?assertEqual(E2, A2),
 
     W3 = [[Wz], [Wy, Wx]],
-    S3 = {state, W3, x, 1, 0, 0, 0},
-    E3 = {state, W3, y, 2, 0, 0, 0},
+    S3 = {state, W3, x, 1, 0, 0, 0, Noop},
+    E3 = {state, W3, y, 2, 0, 0, 0, Noop},
     A3 = cs_screen:focus_(left, S3),
     ?assertEqual(E3, A3),
 
     W4 = [[Wz, [[Wx],[Wy]]]],
-    S4 = {state, W4, x, 1, 0, 0, 0},
-    E4 = {state, W4, z, 3, 0, 0, 0},
+    S4 = {state, W4, x, 1, 0, 0, 0, Noop},
+    E4 = {state, W4, z, 3, 0, 0, 0, Noop},
     A4 = cs_screen:focus_(left, S4),
     ?assertEqual(E4, A4),
 
     W5 = [[Wz, [[Wy],[Wx]]]],
-    S5 = {state, W5, x, 1, 0, 0, 0},
-    E5 = {state, W5, z, 3, 0, 0, 0},
+    S5 = {state, W5, x, 1, 0, 0, 0, Noop},
+    E5 = {state, W5, z, 3, 0, 0, 0, Noop},
     A5 = cs_screen:focus_(left, S5),
     ?assertEqual(E5, A5),
 
     W6 = [[Wz, [[Wy],[[Wa, Wx]]]]],
-    S6 = {state, W6, x, 1, 0, 0, 0},
-    E6 = {state, W6, a, 4, 0, 0, 0},
+    S6 = {state, W6, x, 1, 0, 0, 0, Noop},
+    E6 = {state, W6, a, 4, 0, 0, 0, Noop},
     A6 = cs_screen:focus_(left, S6),
     ?assertEqual(E6, A6),
 
     W7 = [[Wz, [[Wy],[[Wx, Wa]]]]],
-    S7 = {state, W7, x, 1, 0, 0, 0},
-    E7 = {state, W7, z, 3, 0, 0, 0},
+    S7 = {state, W7, x, 1, 0, 0, 0, Noop},
+    E7 = {state, W7, z, 3, 0, 0, 0, Noop},
     A7 = cs_screen:focus_(left, S7),
     ?assertEqual(E7, A7),
 
     W8 = [[Wx, Wz]],
-    S8 = {state, W8, x, 1, 0, 0, 0},
-    E8 = {state, W8, x, 1, 0, 0, 0},
+    S8 = {state, W8, x, 1, 0, 0, 0, Noop},
+    E8 = {state, W8, x, 1, 0, 0, 0, Noop},
     A8 = cs_screen:focus_(left, S8),
     ?assertEqual(E8, A8),
 
     W9 = [[Wx, [[Wz], [Wy]]]],
-    S9 = {state, W9, x, 1, 0, 0, 0},
-    E9 = {state, W9, x, 1, 0, 0, 0},
+    S9 = {state, W9, x, 1, 0, 0, 0, Noop},
+    E9 = {state, W9, x, 1, 0, 0, 0, Noop},
     A9 = cs_screen:focus_(left, S9),
     ?assertEqual(E9, A9),
 
+    %% ┌───┐
+    %% │ X │ X -> X
+    %% └───┘
     W10 = [[Wx]],
-    S10 = {state, W10, x, 1, 0, 0, 0},
-    E10 = {state, W10, x, 1, 0, 0, 0},
+    S10 = {state, W10, x, 1, 0, 0, 0, Noop},
+    E10 = {state, W10, x, 1, 0, 0, 0, Noop},
     A10 = cs_screen:focus_(right, S10),
     ?assertEqual(E10, A10),
 
@@ -377,8 +382,8 @@ test_focus(_Config) ->
     %% │ X │
     %% └───┘
     W11 = [[Wy, Wx]],
-    S11 = {state, W11, x, 1, 0, 0, 0},
-    E11 = {state, W11, x, 1, 0, 0, 0},
+    S11 = {state, W11, x, 1, 0, 0, 0, Noop},
+    E11 = {state, W11, x, 1, 0, 0, 0, Noop},
     A11 = cs_screen:focus_(right, S11),
     ?assertEqual(E11, A11),
 
@@ -388,8 +393,8 @@ test_focus(_Config) ->
     %% │ X │   │
     %% └───┴───┘
     W12 = [[Wy, Wx], [Wz]],
-    S12 = {state, W12, x, 1, 0, 0, 0},
-    E12 = {state, W12, x, 1, 0, 0, 0},
+    S12 = {state, W12, x, 1, 0, 0, 0, Noop},
+    E12 = {state, W12, x, 1, 0, 0, 0, Noop},
     A12 = cs_screen:focus_(right, S12),
     ?assertEqual(E12, A12),
 
@@ -399,8 +404,8 @@ test_focus(_Config) ->
     %% │   │   │ B │   │
     %% └───┴───┴───┴───┘
     W13 = [[Wy, Wx, [[Wa],[Wb]]], [Wz]],
-    S13 = {state, W13, x, 1, 0, 0, 0},
-    E13 = {state, W13, a, 4, 0, 0, 0},
+    S13 = {state, W13, x, 1, 0, 0, 0, Noop},
+    E13 = {state, W13, a, 4, 0, 0, 0, Noop},
     A13 = cs_screen:focus_(right, S13),
     ?assertEqual(E13, A13),
 
@@ -410,8 +415,8 @@ test_focus(_Config) ->
     %% │   │ X │   │
     %% └───┴───┴───┘
     W14 = [[Wy, [[Wz],[Wx]], Wa]],
-    S14 = {state, W14, x, 1, 0, 0, 0},
-    E14 = {state, W14, a, 4, 0, 0, 0},
+    S14 = {state, W14, x, 1, 0, 0, 0, Noop},
+    E14 = {state, W14, a, 4, 0, 0, 0, Noop},
     A14 = cs_screen:focus_(right, S14),
     ?assertEqual(E14, A14),
 
@@ -421,10 +426,32 @@ test_focus(_Config) ->
     %% │ Y │   │
     %% └───┴───┘
     W15 = [[[[Wx],[Wy]],Wz]],
-    S15 = {state, W15, x, 1, 0, 0, 0},
-    E15 = {state, W15, z, 3, 0, 0, 0},
+    S15 = {state, W15, x, 1, 0, 0, 0, Noop},
+    E15 = {state, W15, z, 3, 0, 0, 0, Noop},
     A15 = cs_screen:focus_(right, S15),
     ?assertEqual(E15, A15),
+
+    % dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:tracer(),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            focus_,
+            4,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]),
+    %% ┌───┬───┐
+    %% │ X │   │ X -> X
+    %% ├───┤ Z │
+    %% │ Y │   │
+    %% └───┴───┘
+    W16 = [[[[Wx],[Wy]],Wz]],
+    S16 = {state, W16, x, 1, 0, 0, 0, Noop},
+    E16 = {state, W16, x, 1, 0, 0, 0, Noop},
+    A16 = cs_screen:focus_(up, S16),
+    ?assertEqual(E16, A16),
+    
+    dbg:stop(),
 
     ok.
 

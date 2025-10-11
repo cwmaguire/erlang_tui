@@ -226,9 +226,6 @@ parse(11) -> % \v    ctrl-up
 parse(12) -> % \f    ctrl-right
     debug_("Focus ->"),
     cs_screen:focus(right);
-parse(12) -> % \f    ctrl-right
-    debug_("Focus ->"),
-    cs_screen:focus(right);
 parse(127) -> % delete
     debug_("Delete"),
     cs_screen:delete();

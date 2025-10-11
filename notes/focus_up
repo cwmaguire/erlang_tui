@@ -1,0 +1,412 @@
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-11   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+"Columns" are either windows, or lists of rows.
+Said another way, rows contain either windows, or lists of rows.
+Columns are lists of rows. *
+Columns need to pass their first row the primary window of the
+parent row.
+Columns need to pass the rest of the rows the primary window
+of the first row.
+
+* We can see this in the diagram below where Row A contains
+a list of lists of rows.
+
+1. Get the primary window of a row
+2. Track whether the current list is a column or row
+3. Treat first rows different than the rest of the rows
+
+Let's run some scenarios:
+
+S Focused.
+1. Start at Table (top level column)
+  - type: column
+  - no primary window of parent row
+  2. process first row ... 'first' or true
+    - type: row
+    - no primary window of parent row
+    3. process first column ... pass 'first'? ... or just always pass
+       up the primary window?
+       - type: column
+       - no primary window of parent row
+       4. process first row
+         - type: row
+         5. process first column/window ... or do we distinguish?
+           - type: column
+           - S is in focus
+           - S is a Window
+           - primary is undefined
+           - return {done, SId, SPid}
+
+T Focused.
+1. Start at Table (top level column)
+  - type: column
+  - no primary window of parent row
+  2. process first row ... 'first' or true
+    - type: row
+    - no primary window of parent row
+    3. process first column ... pass 'first'? ... or just always pass
+       up the primary window?
+       - type: column
+       - no primary window of parent row
+       4. process first row
+         - type: row
+         5. process first column/window ... or do we distinguish?
+           - type: column
+           - S is a Window
+           - parent primary is undefined
+           - return {primary, SId}
+         6. process second column - "parent" is now Row C
+           - type: column
+           - T is window
+           - T is focused
+           - primary is S
+           - return {done, SId, SPid}
+
+U Focused.
+1. Start at Table (top level column)
+  - type: column
+  - no primary window of parent row "parent"
+  2. process first row (A) ... 'first' or true
+    - position: `first`
+    - type: row
+    - no primary window of parent row ("no parent")
+A1  3. process first column (A.1) ... pass 'first'? ... or just always pass
+       up the primary window?
+       - position is `first`
+       - type: column
+       - no primary window of parent row ("no parent")
+A1C    4. process first row (A.1.C)
+         - position is `first`
+         - type: row
+         - no parent
+         - no primary window of current row ("no window")
+A1CS     5. process first column/window (A.1.C.S) ... or do we distinguish?
+           - type: column
+           - S is a Window
+           - no parent
+           - no window
+           - return {window, SId, SPid}
+A1D    6. process second row (A.1.D)
+          - type: row
+          - parent is ignored
+          - window is {window, SId}
+A1DT     8. process first column/window (A.1.D.T)
+           - type: column
+           - T is window
+           - window is {window, SId, SPid}
+           - return {window, SId}
+      - set window to {window, SId} now that the first row has given us a window
+        for our parent row
+A2  8. process second column (A.2)
+      - type: column
+      - parent is undefined
+A2E   9. process first row (A.2.E)
+        - type: row
+        - parent is undefined
+        - window is undefined
+A1EU    10. process first col/win (A.1.E.U)
+          - type colum
+          - U is window
+          - primary is undefined
+          - window is undefined
+          - return {done, UId, UPid}  * U is focused, and there's no parent or primary
+                                        so we're finished: focus doesn't move
+
+(I'm going to carry on as if V was in focus and U returned {window, UId, UPid})
+
+A2F  11. proces second row (A.2.F)
+        - type: row
+        - parent is undefined
+        - window is {window, UId}
+A2FV    12. process first col/win (A.2.F.V)
+           - type: column
+           - V is window
+           - primary is undefined
+           - V is focused
+           - window is {window, UId, UPid}
+           - return {done, UId, UPid}
+    - Row A got {window, SId, SPid} from column 1
+    - Row A returns {window, SId, SPid}
+      Now Table knows that window S is the "parent" for Row B
+(I'm going to carry on as if G was in focus and V returned {window, UId, UPid})
+
+B
+ 13. process second row (B) ... `rest` (instead of `first`)
+  - position is `rest`
+  - parent is {window, SId, SPid}
+
+We need:
+- type: row | col
+- parent: {window, XId, XPid} | undefined
+- window: {window, XId, XPid} | undefined
+- pos: first | rest
+
+return {window, XId, XPId}
+
+Columns *must* have multiple rows
+Rows *must* have multiple columns
+(Otherwise they don't make sense: a column with a single row is still one-dimensional)
+
+┌──────────────────────────┐                              
+│ Column with 1 row        │                            
+│┌────────────────────────┐│    ┌────────────────────────┐
+││Row /w ┌───┬───┬───┬───┐││    │Row /w ┌───┬───┬───┬───┐│
+││4 Col  │ A │ B │ C │ D │││ == │4 Col  │ A │ B │ C │ D ││
+││       └───┴───┴───┴───┘││    │       └───┴───┴───┴───┘│
+│└────────────────────────┘│    └────────────────────────┘
+└──────────────────────────┘                              
+* Note that at least one top level column (i.e. "the table") and one
+top level row are mandatory.
+
+cases:
+- column [First | Rest]
+- column Rest
+- row [First | Rest]
+- row [Rest]
+- #window{} - focused      | window not set (top row) | parent not set (abs top row) -> {done, Self}
+- #window{} - focused      | window not set (top row) | parent set     (not abs top) -> {done, Parent}
+- #window{} - focused      | window set     (not top) -> return {done, Self}
+- #window{} - not focused  | window not set (top row) -> return {window, Self}
+- #window{} - not focused  | window set     (not top) -> return {window, Self} (overwrite parent)
+
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-09   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+┌────────────────────────────────────────────┐
+│Table (column zero)                         │
+│┌──────────────────────────────────────────┐│  S -> S
+││Row A   ┌────────────────┬───────────────┐││  T -> S
+││        │Col 1           │Col 2          │││  U -> U
+││        │┌─────────────┐ │┌─────────────┐│││  V -> U
+││        ││Row C  Win S │ ││Row E  Win U ││││  W
+││        │├─────────────┤ │├─────────────┤│││
+││        ││Row D  Win T │ ││Row F  Win V ││││
+││        │└─────────────┘ │└─────────────┘│││
+││        └────────────────┴───────────────┘││
+│├──────────────────────────────────────────┤│
+││Row B   ┌────────────────┬───────────────┐││
+││        │Col 3           │Col 4          │││
+││        │┌─────────────┐ │┌─────────────┐│││
+││        ││Row G  Win W │ ││Row I  Win Y ││││
+││        │├─────────────┤ │├─────────────┤│││
+││        ││Row H  Win X │ ││Row J  Win Z ││││
+││        │└─────────────┘ │└─────────────┘│││
+││        └────────────────┴───────────────┘││
+│└──────────────────────────────────────────┘│
+└────────────────────────────────────────────┘
+
+┌───┬───┐           ┌───────┬──┐ S -> S
+│ S │ U │           │       │  │ U -> U
+├───┼───┤           │       │U │ T -> S  : T(D) -> S(C)
+│ T │ V │           │       │  │ V -> U
+├───┼───┤           │  S    │  │ W -> S  : W(G(3(B))) -> S(C(1(A)))
+│ W │ Y │           │       ├──┤ X -> W
+├───┼───┤           │       │  │ Y -> S  : Y(I(4(B))) -> S(C(1(A)))
+│ X │ Z │           │       │V │ Z -> Y  : Y and Z are rows 
+└───┴───┘           │       │  │
+                    │       │  │ This is how we could organize the splits
+Above is what the   │       │  │ STUVWXYZ ->
+window arrangement  ├───────┤  │   STUV + WXYZ -> h split
+might look like     │   T   │  │     ST + UV ->   v split
+                    ├──┬────┴──┤       S + T      h split
+right is how that   │  │ Y     │       U + V      h split
+same layout might   │W ├───────┤     WX + YZ ->   v split
+be changed to look  │  │       │       W + X      h split
+like.               ├──┤ Z     │       Y + Z      h split
+                    │X │       │
+                    └──┴───────┘
+
+Since row STUV was split off from row WXYZ, STUV becomes
+the "primary" sibling of WXYZ.
+
+Since W doesn't have a primary sibling in WXYZ, it goes up to the
+primary sibling of STUV. Same with Y.
+
+U can't go anywhere.
+T, V, X, Z all have primary siblings
+
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-08   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+
+                       111    222222222222222
+                      -----------------------
+                             333  44444444444
+                      -----------------------
+                                   555   666
+1| 2 |   |   |   |   |┌───┐ ┌───────────────┐
+1| 2 |   |   |   |   |│   │ │   J   I   H   │ 2,2
+1| 2 |   |   |   |   |│   │ └───────────────┘
+1|   | 3 | 4 |   |   |│   │ ┌───┐ ┌─────────┐
+1|   | 3 | 4 |   |   |│ K │ │   │ │ F  E  D │ 4,4
+1|   | 3 | 4 |   |   |│1,1│ │   │ └─────────┘
+1|   | 3 |   | 5 | 6 |│   │ │   │ ┌───┐ ┌───┐
+1|   | 3 |   | 5 | 6 |│   │ │ G │ │   │ │ B │ 6,6
+1|   | 3 |   | 5 |   |│   │ │3,3│ │ C │ ├───┤
+1|   | 3 |   | 5 | 7 |│   │ │   │ │5,5│ │ A │ 6,7
+1|   | 3 |   | 5 | 7 |└───┘ └───┘ └───┘ └───┘
+
+%% [ [ K, [ [J, I, H], [G,[[F, E, D],[C,[[B],[A]]]]]]]]
+
+Columns with no rows - return prev siblings lead window
+Columns with rows must pass the parent row to the first row
+Columns with rows must pass each first row to its siblings.
+
+Columns with rows *only* have rows
+  - 
+A row must return it's first window.
+
+%% [                                                                     ]
+%%   [                                                                 ]
+%%     A, [                                                          ]
+%%          [   ], [                                               ]
+%%            B      [   ], [                                    ]
+%%                     C      [   ], [                         ]
+%%                              D      [   ], [              ]
+%%                                       E      [   ], [   ]
+%%                                                F      X
+%% 1 2 3  4 5 6    7 8 9    1 1 1    1 1 1    1
+%%                          0 1 2    3 4 5    6
+
+       A  B
+          C
+       c  D
+       o  E
+       l  F
+          X
+
+          C
+          o
+          l
+
+K:
+
+1. outer column - {column, undefined}
+2.   first row - {row, undefined}
+3.     window (K) - {column, undefined}  FOCUSED
+4.     return {done, {KId, KPid}}
+5.   return {done, {KId, KPid}}
+6. return {done, {KId, KPid}}
+
+J
+
+1. outer column - {column, undefined}
+2.   first row - {row, undefined}
+3.     window (K) - {column, undefined}
+4.     return {column, undefined}
+5.     column (JIHFGEDCBA) -> {column, undefined}
+6.       row (JIH) -> {row, undfined}    HAS WINDOW
+7.         window (J) -> {column, undefined} FOCUSED
+8.         return {done, {JId, JPid}}
+9.       ...
+
+I
+
+1. outer column - {column, undefined}
+2.   first row - {row, undefined}
+3.     window (K) - {column, undefined}
+4.     return {column, undefined}
+5.     column (JIHFGEDCBA) -> {column, undefined}
+6.       row (JIH) -> {row, undfined}    HAS WINDOW
+7.         window (J) -> {column, undefined} FOCUSED
+8.         return {column, {row, JId}, {JId, PId}}
+7.         window (I) -> {column, {row, JId}, {JId, PId}} FOCUSED
+8.         return {done, {IId, IPid}}
+9.       ...
+
+H
+
+ 1. outer column - {column, undefined}
+ 2.   first row - {row, undefined}
+ 3.     window (K) - {column, undefined}
+ 4.     return {column, undefined}
+ 5.     column (JIHFGEDCBA) -> {column, undefined}
+ 6.       row (JIH) -> {row, undfined}    HAS WINDOW
+ 7.         window (J) -> {column, undefined} FOCUSED
+ 8.         return {column, {row, JId}, {JId, PId}}
+ 7.         window (I) -> {column, {row, JId}, {JId, PId}}
+ 8.         return {column, {row, JId}, {JId, PId}}
+11.         window (H) -> {column, {row, JId}, {JId, PId}} FOCUSED
+12.         return {done, {HId, HPid}}
+13.       ...
+
+G
+ 1. outer column - {column, undefined}
+ 2.   first row - {row, undefined}
+ 3.     window (K) - {column, undefined}
+ 4.     return {column, undefined}
+ 5.     column (JIHFGEDCBA) -> {column, undefined}
+ 6.       row (JIH) -> {row, undfined}    HAS WINDOW
+ 7.         window (J) -> {column, undefined} FOCUSED
+ 8.         return {column, {row, JId}, {JId, PId}}
+ 7.         window (I) -> {column, {row, JId}, {JId, JPId}}
+ 8.         return {column, {row, JId}, {JId, JPId}}
+11.         window (H) -> {column, {row, JId}, {JId, JPId}}
+12.         return {column, {row, JId}, {JId, JPId}}
+13.       return {row, {row, JId}, {JId, JPId}}
+14.       row (GFEDCBA) -> {row, {row, JId}, {JId, JPid}}    RESETS ROW
+15.         window (G) -> {column, {row, undefined}, {JId, JPid}}
+16.         return {done, {GId, GPid}}
+17.       ...
+
+F
+ 1. outer column - {column, undefined}
+ 2.   first row - {row, undefined}
+ 3.     window (K) - {column, undefined}
+ 4.     return {column, undefined}
+ 5.     column (JIHFGEDCBA) -> {column, undefined}
+ 6.       row (JIH) -> {row, undfined}    HAS WINDOW
+ 7.         window (J) -> {column, undefined} FOCUSED
+ 8.         return {column, {row, JId}, {JId, PId}}
+ 7.         window (I) -> {column, {row, JId}, {JId, JPId}}
+ 8.         return {column, {row, JId}, {JId, JPId}}
+11.         window (H) -> {column, {row, JId}, {JId, JPId}}
+12.         return {column, {row, JId}, {JId, JPId}}
+13.       return {row, {row, JId}, {JId, JPId}}
+14.       row (GFEDCBA) -> {row, {row, JId}, {JId, JPid}}    RESETS ROW
+15.         window (G) -> {column, {row, undefined}, {JId, JPid}}
+16.         return {column, {row, GId}, {JId, JPid}}
+17.         column (FEDCBA) -> {column, {row, GId}, {JId, JPid}} 
+18.           row (FED) -> {row, {row, undefined}, {JId, JPid}}
+19.             column (F) -> {column, {row, undefined}, {JId, JPid}} FOCUSED
+20.             return {done, {JId, JPid}}
+
+
+E
+ 1. outer column - {column, undefined}
+ 2.   first row - {row, undefined}
+ 3.     window (K) - {column, undefined}
+ 4.     return {column, undefined}
+ 5.     column (JIHFGEDCBA) -> {column, undefined}
+ 6.       row (JIH) -> {row, undfined}    HAS WINDOW
+ 7.         window (J) -> {column, undefined} FOCUSED
+ 8.         return {column, {row, JId}, {JId, PId}}
+ 7.         window (I) -> {column, {row, JId}, {JId, JPId}}
+ 8.         return {column, {row, JId}, {JId, JPId}}
+11.         window (H) -> {column, {row, JId}, {JId, JPId}}
+12.         return {column, {row, JId}, {JId, JPId}}
+13.       return {row, {row, JId}, {JId, JPId}}
+14.       row (GFEDCBA) -> {row, {row, JId}, {JId, JPid}}    RESETS ROW
+15.         window (G) -> {column, {row, undefined}, {JId, JPid}}
+16.         return {column, {row, GId}, {JId, JPid}}
+17.         column (FEDCBA) -> {column, {row, GId}, {JId, JPid}} 
+18.           row (FED) -> {row, {row, undefined}, {JId, JPid}}
+19.             column (F) -> {column, {row, undefined}, {JId, JPid}} FOCUSED
+20.             return {done, {JId, JPid}}
+
+
+
+
+
+
+
+
+
+
+
+
+
