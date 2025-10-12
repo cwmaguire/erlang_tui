@@ -304,7 +304,7 @@ test_layout_windows(_Config) ->
 test_focus(_Config) ->
     % incremente numbers macro
     %0jl0jl0jl0jl0kkkk
-    
+
     Noop = fun(_, _) -> ok end,
 
     Wx = #window{id = x, pid = 1},
@@ -432,14 +432,15 @@ test_focus(_Config) ->
     ?assertEqual(E15, A15),
 
     % dbg:tracer(process, {fun convert_trace/2, State}),
-    dbg:tracer(),
-    dbg:p(all, c),
-    dbg:tpl(cs_screen,
-            focus_,
-            4,
-            [{'_',[],[{return_trace},
-                      {exception_trace},
-                      {message,{caller_line}}]}]),
+    % dbg:tracer(),
+    % dbg:p(all, c),
+    % dbg:tpl(cs_screen,
+    %         focus_,
+    %         4,
+    %         [{'_',[],[{return_trace},
+    %                   {exception_trace},
+    %                   {message,{caller_line}}]}]),
+
     %% ┌───┬───┐
     %% │ X │   │ X -> X
     %% ├───┤ Z │
@@ -450,7 +451,28 @@ test_focus(_Config) ->
     E16 = {state, W16, x, 1, 0, 0, 0, Noop},
     A16 = cs_screen:focus_(up, S16),
     ?assertEqual(E16, A16),
-    
+
+    % dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:tracer(),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            focus_,
+            4,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]),
+
+    %% ┌───┬───┐
+    %% │ X │   │ Y -> X
+    %% ├───┤ Z │
+    %% │ Y │   │
+    %% └───┴───┘
+    W17 = [[[[Wx],[Wy]],Wz]],
+    S17 = {state, W17, y, 2, 0, 0, 0, Noop},
+    E17 = {state, W17, x, 1, 0, 0, 0, Noop},
+    A17 = cs_screen:focus_(up, S17),
+    ?assertEqual(E17, A17),
+
     dbg:stop(),
 
     ok.

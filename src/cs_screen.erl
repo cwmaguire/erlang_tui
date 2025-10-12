@@ -514,15 +514,15 @@ focus_(up,
        #up{win = {WId, WPid}}) ->
     #up{new = {WId, WPid}};
 focus_(up,
-       Id,
+       _Id,
        #window{id = Id, pid = Pid},
        Up = #up{}) ->
     Up#up{win = {Id, Pid}};
-focus_(up,
-       _Id,
-       #window{},
-       Up = #up{}) ->
-    Up;
+% focus_(up,
+%        _Id,
+%        #window{},
+%        Up = #up{}) ->
+%     Up;
 focus_(up,
        Id,
        _Column = [Row | Rest],
@@ -567,7 +567,7 @@ focus_(up,
        _Row = [ColOrWin | Rest],
        Up = #up{type = row,
                 pos = rest}) ->
-    #up{win = Window, new = New} = focus_(up, Id, ColOrWin, Up#up{type = col, win= undefined}),
+    #up{win = Window, new = New} = focus_(up, Id, ColOrWin, Up#up{type = col}),
     Up2 = 
         lists:foldl(fun(ColOrWin_, Acc) ->
                         focus_(up, Id, ColOrWin_, Acc)
