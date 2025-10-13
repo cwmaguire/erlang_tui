@@ -12,13 +12,19 @@
 -export([test_layout_windows/1]).
 -export([test_focus/1]).
 
--export([split_call/6]).
--export([split_return/3]).
--export([rotate_call/6]).
--export([rotate_return/3]).
 -export([dbg_layout/0]).
 -export([layout_call/6]).
 -export([layout_return/3]).
+-export([dbg_rotate/0]).
+-export([rotate_call/6]).
+-export([rotate_return/3]).
+-export([dbg_split/0]).
+-export([split_call/6]).
+-export([split_return/3]).
+-export([dbg_focus/0]).
+-export([focus_call/6]).
+-export([focus_return/3]).
+-export([convert_windows/1]).
 
 all() ->
     [test_rotate_right_down,
@@ -197,22 +203,10 @@ test_split_window(_Config) ->
     % | z |   |         |   z   |   |
     % +---+---+         +-------+---+
 
-    State = {fun split_call/6, fun split_return/3, 0},
-    dbg:tracer(process, {fun convert_trace/2, State}),
-    dbg:p(all, c),
-    dbg:tpl(cs_screen,
-            split_window,
-            6,
-            [{'_',[],[{return_trace},
-                      {exception_trace},
-                      {message,{caller_line}}]}]),
-
     W7 = [[[[Wx], [Wz]], Wa]],
     E7 = [[[[Wx, Wy], [Wz]], Wa]],
     A7 = cs_screen:split_window(x, y, W7, vertical, NewWindow),
     ?assertEqual(E7, A7),
-
-    dbg:stop(),
 
     % [[[x,z], a]] ->   [[[[x, y], z], a]]
     %
@@ -312,6 +306,9 @@ test_focus(_Config) ->
     Wz = #window{id = z, pid = 3},
     Wa = #window{id = a, pid = 4},
     Wb = #window{id = b, pid = 5},
+    Wc = #window{id = c, pid = 6},
+    Wd = #window{id = d, pid = 7},
+    We = #window{id = e, pid = 8},
 
     W1 = [[Wx]],
     S1 = {state, W1, x, 1, 0, 0, 0, Noop},
@@ -431,16 +428,6 @@ test_focus(_Config) ->
     A15 = cs_screen:focus_(right, S15),
     ?assertEqual(E15, A15),
 
-    % dbg:tracer(process, {fun convert_trace/2, State}),
-    % dbg:tracer(),
-    % dbg:p(all, c),
-    % dbg:tpl(cs_screen,
-    %         focus_,
-    %         4,
-    %         [{'_',[],[{return_trace},
-    %                   {exception_trace},
-    %                   {message,{caller_line}}]}]),
-
     %% ┌───┬───┐
     %% │ X │   │ X -> X
     %% ├───┤ Z │
@@ -451,16 +438,6 @@ test_focus(_Config) ->
     E16 = {state, W16, x, 1, 0, 0, 0, Noop},
     A16 = cs_screen:focus_(up, S16),
     ?assertEqual(E16, A16),
-
-    % dbg:tracer(process, {fun convert_trace/2, State}),
-    dbg:tracer(),
-    dbg:p(all, c),
-    dbg:tpl(cs_screen,
-            focus_,
-            4,
-            [{'_',[],[{return_trace},
-                      {exception_trace},
-                      {message,{caller_line}}]}]),
 
     %% ┌───┬───┐
     %% │ X │   │ Y -> X
@@ -473,7 +450,107 @@ test_focus(_Config) ->
     A17 = cs_screen:focus_(up, S17),
     ?assertEqual(E17, A17),
 
-    dbg:stop(),
+    %% ┌───┬───┐
+    %% │ X │   │ Z -> Z
+    %% ├───┤ Z │
+    %% │ Y │   │
+    %% └───┴───┘
+    W18 = [[[[Wx],[Wy]],Wz]],
+    S18 = {state, W18, z, 3, 0, 0, 0, Noop},
+    E18 = {state, W18, z, 3, 0, 0, 0, Noop},
+    A18 = cs_screen:focus_(up, S18),
+    ?assertEqual(E18, A18),
+
+    % ┌───┬───┬───┐
+    % │   │ Y │   │ Z - Y
+    % │ X ├───┤ A │
+    % │   │ Z │   │
+    % └───┴───┴───┘
+    W19 = [[Wx, [[Wy],[Wz]],Wa]],
+    S19 = {state, W19, z, 3, 0, 0, 0, Noop},
+    E19 = {state, W19, y, 2, 0, 0, 0, Noop},
+    A19 = cs_screen:focus_(up, S19),
+    ?assertEqual(E19, A19),
+
+    % ┌───┬───┬───┐
+    % │   │ Y │   │ Z - Y
+    % │ X ├───┤ A │
+    % │   │ Z │   │
+    % └───┴───┴───┘
+    W20 = [[Wx, [[Wy],[Wz]],Wa]],
+    S20 = {state, W20, y, 2, 0, 0, 0, Noop},
+    E20 = {state, W20, y, 2, 0, 0, 0, Noop},
+    A20 = cs_screen:focus_(up, S20),
+    ?assertEqual(E20, A20),
+
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
+
+    W21 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S21 = {state, W21, b, 5, 0, 0, 0, Noop},
+    E21 = {state, W21, a, 4, 0, 0, 0, Noop},
+    A21 = cs_screen:focus_(up, S21),
+    ?assertEqual(E21, A21),
+
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
+    W22 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S22 = {state, W22, e, 8, 0, 0, 0, Noop},
+    E22 = {state, W22, a, 4, 0, 0, 0, Noop},
+    A22 = cs_screen:focus_(up, S22),
+    ?assertEqual(E22, A22),
+
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
+    W23 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S23 = {state, W23, y, 2, 0, 0, 0, Noop},
+    E23 = {state, W23, a, 4, 0, 0, 0, Noop},
+    A23 = cs_screen:focus_(up, S23),
+    ?assertEqual(E23, A23),
+
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
+    W24 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S24 = {state, W24, x, 1, 0, 0, 0, Noop},
+    E24 = {state, W24, e, 8, 0, 0, 0, Noop},
+    A24 = cs_screen:focus_(up, S24),
+    ?assertEqual(E24, A24),
 
     ok.
 
@@ -492,6 +569,46 @@ test_focus(_Config) ->
 dbg_layout() ->
     State = {fun layout_call/6,
              fun layout_return/3,
+             0},
+    dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            layout_windows,
+            7,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]).
+
+layout_call(Spaces,
+            M,
+            F,
+            BaseName,
+            Line,
+            [Windows, Orientation, H, HR, W, WR, Acc]) ->
+    Converted = convert_windows(Windows, []),
+    AccConverted = convert_windows(Acc, []),
+
+    ct:pal("~s~p:~p(~p, ~p, ~p, ~p, ~p, ~p, ~p) [~p:~p]~n",
+           [Spaces,
+            M,
+            F,
+            Converted,
+            Orientation,
+            H,
+            HR,
+            W,
+            WR,
+            AccConverted,
+            BaseName,
+            Line]).
+
+layout_return(Spaces, MFA, Return) ->
+    Converted = convert_windows(Return, []),
+    ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
+
+dbg_rotate() ->
+    State = {fun rotate_call/6,
+             fun rotate_return/3,
              0},
     dbg:tracer(process, {fun convert_trace/2, State}),
     dbg:p(all, c),
@@ -526,12 +643,27 @@ rotate_return(Spaces, MFA, Return) ->
     Converted = convert_windows(Return, []),
     ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
 
+%% This might be broken: only six params were accounted for
+%% in split_call.
+dbg_split() ->
+    State = {fun split_call/6,
+             fun split_return/3,
+             0},
+    dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            split_window,
+            7,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]).
+
 split_call(Spaces,
            M,
            F,
            BaseName,
            Line,
-           [_, _, Windows, Orientation, Direction, Acc]) ->
+           [_, _, Windows, Orientation, Direction, _, Acc]) ->
     Converted = convert_windows(Windows, []),
     AccConverted = convert_windows(Acc, []),
 
@@ -550,34 +682,80 @@ split_return(Spaces, MFA, Return) ->
     Converted = convert_windows(Return, []),
     ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
 
-layout_call(Spaces,
-            M,
-            F,
-            BaseName,
-            Line,
-            [Windows, Orientation, H, HR, W, WR, Acc]) ->
-    Converted = convert_windows(Windows, []),
-    AccConverted = convert_windows(Acc, []),
+dbg_focus() ->
+    State = {fun focus_call/6,
+             fun focus_return/3,
+             0},
+    dbg:tracer(process, {fun convert_trace/2, State}),
+    dbg:p(all, c),
+    dbg:tpl(cs_screen,
+            focus_,
+            4,
+            [{'_',[],[{return_trace},
+                      {exception_trace},
+                      {message,{caller_line}}]}]).
 
-    ct:pal("~s~p:~p(~p, ~p, ~p, ~p, ~p, ~p, ~p) [~p:~p]~n",
+focus_call(Spaces,
+           M,
+           F,
+           BaseName,
+           Line,
+           [Direction, FocusId, Windows, Acc = #up{}]) ->
+    Converted = convert_windows(Windows, []),
+
+    #up{type = Type,
+        pos = Position,
+        primary = Primary,
+        parent = Parent,
+        new = New} = Acc,
+
+    CType = case Type of
+              row -> r;
+              col -> c
+          end,
+    CPos = case Position of
+                first -> f;
+                rest -> r
+          end,
+
+    ct:pal("~s~p:~p(~p, ~p, ~p, #up{~p, ~p, ~p, ~p, ~p}) [~p:~p]",
            [Spaces,
             M,
             F,
+            Direction,
+            FocusId,
             Converted,
-            Orientation,
-            H,
-            HR,
-            W,
-            WR,
-            AccConverted,
+            CType,
+            CPos,
+            Primary,
+            Parent,
+            New,
+            BaseName,
+            Line]);
+focus_call(Spaces,
+           M,
+           F,
+           BaseName,
+           Line,
+           [Direction, FocusId, Windows, Acc]) ->
+    CWindows = convert_windows(Windows, []),
+    ct:pal("~s~p:~p(~p, ~p, ~p, ~p) [~p:~p]",
+           [Spaces,
+            M,
+            F,
+            Direction,
+            FocusId,
+            CWindows,
+            Acc,
             BaseName,
             Line]).
 
-layout_return(Spaces, MFA, Return) ->
-    Converted = convert_windows(Return, []),
-    ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
+focus_return(Spaces, MFA, Return) ->
+    ct:pal("~sreturn: ~p - ~p", [Spaces, MFA, Return]).
 
 
+%% Calls call/6 and return/3 handler functions for each
+%% call and return trace. Handles indenting.
 convert_trace({trace, _Pid, return_from, MFA, Return},
               {CallFun, ReturnFun, Indent}) ->
     Unindented = Indent - 4,
@@ -606,6 +784,11 @@ indent(0, Spaces) ->
 indent(N, Spaces) ->
     indent(N - 1, [?SPACE | Spaces]).
 
+convert_windows(undefined) ->
+    "undef";
+convert_windows(Windows) ->
+    convert_windows(Windows, []).
+
 convert_windows([#window{id = Id, h = 0, w = 0} | Rest], Acc) ->
     convert_windows(Rest, Acc ++ [Id]);
 convert_windows([#window{id = Id, h = H, w = W} | Rest], Acc) ->
@@ -620,6 +803,8 @@ convert_windows(#window{id = Id, h = H, w = W}, Acc) ->
 convert_windows([], Acc) ->
     Acc.
 
+% Call Trace Example:
+% --------------------
 % {
 %   trace,
 %   0.342.0>,call,
@@ -639,6 +824,8 @@ convert_windows([], Acc) ->
 %   }
 % }
 
+% Return Trace Example:
+% --------------------
 % {trace,
 %  <0.342.0>,
 %  return_from,
