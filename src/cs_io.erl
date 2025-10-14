@@ -172,7 +172,8 @@ escape_code(f3) ->
     debug_("F3", 20, 20),
     gen_server:cast(cs_screen, split_horizontal);
 escape_code(f4) ->
-    debug_("F4", 20, 20);
+    debug_("F4", 20, 20),
+    gen_server:cast(cs_screen, print_windows);
 escape_code(f5) ->
     debug_("F5", 20, 20);
 escape_code(f6) ->

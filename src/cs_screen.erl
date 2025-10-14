@@ -88,6 +88,11 @@ handle_cast(split_horizontal, State1) ->
 handle_cast(delete, State = #state{focused_window_pid = Pid}) ->
     gen_server:cast(Pid, delete),
     {noreply, State};
+handle_cast(print_windows, State = #state{windows = Windows}) ->
+    CWindows = convert_windows(Windows, []),
+    Text = io_lib:format("Windows: ~p", [CWindows]),
+    gen_server:cast(cs_io, {debug, Text, 2, 10}),
+    {noreply, State};
 handle_cast(_Req, State) ->
     {noreply, State}.
 
@@ -642,3 +647,11 @@ focus_(down,
             {Bool_, row}
     end.
 
+
+convert_windows([#window{id = Id} | Rest], Acc) ->
+    convert_windows(Rest, Acc ++ [Id]);
+convert_windows([List | Rest], Acc) ->
+    Converted = convert_windows(List, []),
+    convert_windows(Rest, Acc ++ [Converted]);
+convert_windows([], Acc) ->
+    Acc.
