@@ -21,9 +21,9 @@
 -export([dbg_split/0]).
 -export([split_call/6]).
 -export([split_return/3]).
--export([dbg_focus/0]).
--export([focus_call/6]).
--export([focus_return/3]).
+-export([dbg_focus_up/0]).
+-export([focus_up_call/6]).
+-export([focus_up_return/3]).
 -export([convert_windows/1]).
 
 all() ->
@@ -552,6 +552,59 @@ test_focus(_Config) ->
     A24 = cs_screen:focus_(up, S24),
     ?assertEqual(E24, A24),
 
+
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
+    W25 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S25 = {state, W25, a, 4, 0, 0, 0, Noop},
+    E25 = {state, W25, b, 5, 0, 0, 0, Noop},
+    A25 = cs_screen:focus_(down, S25),
+    ?assertEqual(E25, A25),
+
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
+    W26 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S26 = {state, W26, b, 5, 0, 0, 0, Noop},
+    E26 = {state, W26, e, 8, 0, 0, 0, Noop},
+    A26 = cs_screen:focus_(down, S26),
+    ?assertEqual(E26, A26),
+
+    W27 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S27 = {state, W27, c, 6, 0, 0, 0, Noop},
+    E27 = {state, W27, d, 7, 0, 0, 0, Noop},
+    A27 = cs_screen:focus_(down, S27),
+    ?assertEqual(E27, A27),
+
+    W28 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S28 = {state, W28, y, 2, 0, 0, 0, Noop},
+    E28 = {state, W28, z, 3, 0, 0, 0, Noop},
+    A28 = cs_screen:focus_(down, S28),
+    ?assertEqual(E28, A28),
+
+    W29 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S29 = {state, W29, x, 1, 0, 0, 0, Noop},
+    E29 = {state, W29, x, 1, 0, 0, 0, Noop},
+    A29 = cs_screen:focus_(down, S29),
+    ?assertEqual(E29, A29),
+
     ok.
 
 
@@ -559,7 +612,8 @@ test_focus(_Config) ->
 
     % Increase all numbers, jumps over lines with
     % searches
-    % j/^ *A:nohlj0l?^  *W\d:noh0
+    % Old: j/^ *A:nohlj0l?^  *W\d:noh0
+    % j0lj0lj0lj0l0kkkk
 
     % Do the same, but slowly
     % :sleep 200mj:sleep 200m:sleep 200m/^ *A:sleep 200m:noh:sleep 200m:sleep 200ml:sleep 200m:sleep 200mj:sleep 200m0:sleep 200m:sleep 200ml:sleep 200m:sleep 200m?^  *W\d:sleep 200m:noh:sleep 200m0
@@ -682,9 +736,9 @@ split_return(Spaces, MFA, Return) ->
     Converted = convert_windows(Return, []),
     ct:pal("~sreturn: ~p - ~p~n", [Spaces, MFA, Converted]).
 
-dbg_focus() ->
-    State = {fun focus_call/6,
-             fun focus_return/3,
+dbg_focus_up() ->
+    State = {fun focus_up_call/6,
+             fun focus_up_return/3,
              0},
     dbg:tracer(process, {fun convert_trace/2, State}),
     dbg:p(all, c),
@@ -695,7 +749,7 @@ dbg_focus() ->
                       {exception_trace},
                       {message,{caller_line}}]}]).
 
-focus_call(Spaces,
+focus_up_call(Spaces,
            M,
            F,
            BaseName,
@@ -732,7 +786,7 @@ focus_call(Spaces,
             New,
             BaseName,
             Line]);
-focus_call(Spaces,
+focus_up_call(Spaces,
            M,
            F,
            BaseName,
@@ -750,7 +804,7 @@ focus_call(Spaces,
             BaseName,
             Line]).
 
-focus_return(Spaces, MFA, Return) ->
+focus_up_return(Spaces, MFA, Return) ->
     ct:pal("~sreturn: ~p - ~p", [Spaces, MFA, Return]).
 
 

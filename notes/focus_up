@@ -1,4 +1,27 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-13   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Focus up works. The main idea is to keep a "primary" window for each row, and
+then pass that down to the next row as the "parent". "Primary" just means the
+top-left window in a row.
+
+In the case below, ABCD is one row, and DXYZ, the next. A is the primary
+┌──────┬──┐  in the top row, so A gets passed to DXYZ as the parent.
+│      │C │
+│  A   │  │ Each row can only have one primary, so each row will handle
+│      ├──┤ the first column separately, and store that columns primary
+│      │D │ window. So when row ABCD processes column AB, it will save
+├──────┤  │ A as the primary, then handle the rest of the columns, in this
+│   B  │  │ case just [CD].
+├──┬───┴──┤
+│  │ Y    │
+│E ├──────┤
+├──┤ Z    │
+│X │      │
+└──┴──────┘
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-11   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

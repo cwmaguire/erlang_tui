@@ -1,0 +1,88 @@
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-13   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+┌──────┬──┐ A -> B
+│      │C │ B -> E
+│  A   │  │ C -> D
+│      ├──┤ D -> E
+│      │D │ E -> X
+├──────┤  │ X -> X
+│   B  │  │ Y -> Z
+├──┬───┴──┤ Z -> Z
+│  │ Y    │
+│E ├──────┤
+├──┤ Z    │
+│X │      │
+└──┴──────┘
+
+Can only go to row below.
+If we can't go to a sibling row, we have to go to the sibling
+row of our parents row.
+
+  e.g. B has no sibling row, so B would need to go to ABCD's sibling
+  row EXYZ, and we'll just go to the first window, E.
+
+  X doesn't have a sibling row, and EXYZ doesn't either, so we'll
+  have to handle the case of now more sibling rows, or parent sibling rows,
+  grandparent sibling rows, etc.
+
+┌────────────────────────────────────────────┐
+│Table (column zero)                         │
+│┌──────────────────────────────────────────┐│
+││Row A   ┌────────────────┬───────────────┐││
+││        │Col 1           │Col 2          │││
+││        │┌─────────────┐ │┌─────────────┐│││
+││        ││Row C  Win A │ ││Row E  Win C ││││
+││        │├─────────────┤ │├─────────────┤│││
+││        ││Row D  Win B │ ││Row F  Win D ││││
+││        │└─────────────┘ │└─────────────┘│││
+││        └────────────────┴───────────────┘││
+│├──────────────────────────────────────────┤│
+││Row B   ┌────────────────┬───────────────┐││
+││        │Col 3           │Col 4          │││
+││        │┌─────────────┐ │┌─────────────┐│││
+││        ││Row G  Win E │ ││Row I  Win Y ││││
+││        │├─────────────┤ │├─────────────┤│││
+││        ││Row H  Win X │ ││Row J  Win Z ││││
+││        │└─────────────┘ │└─────────────┘│││
+││        └────────────────┴───────────────┘││
+│└──────────────────────────────────────────┘│
+└────────────────────────────────────────────┘
+
+A is focused
+- C0 - do all rows
+-  RA - do all columns
+-    C1 - do all rows
+-      RC - 
+-        WA - is focused, set as focused window
+-      RD
+-        WB - we have a focused window, so set WB as new focused window
+
+B is focused
+- C0
+-   RA
+-     C1
+-       RC
+-         WA
+-       RD
+-         WB - is focused, set as focused window
+-     C2 - we can skip the rest of the columns, because we're not going
+           side-to-side.
+-   RB - We have to pass the focused window to RB from RA
+-     C3
+-       RG
+-         WE - this is the next window, we focus here.
+
+I think all I need to do is pass back that we've found a focused window,
+and the next window in a row below should be focused. We can skip sibling
+columns because they can't be below.
+
+Couple key things were reqired:
+- reset what type we're on (row/col) after processing children:
+  - e.g.if we processed columns, set type back to row
+- If we're processing columns and we find a focused window, set the skip
+  flag, but then reset it from {skip, col} to {true, row} when we leave
+  the row, otherwise columns in the row below us will be skipped.
+  Basically, just skip the columns in the current row.
+

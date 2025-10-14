@@ -421,20 +421,12 @@ focus_(Direction, State = #state{windows = Windows,
                                  notify_fun = NotifyFun}) ->
     Result = focus_(Direction, Id, Windows, undefined),
     case {Direction, Result} of
-        {left, {done, {FocusId, FocusPid}}} ->
+        {_, {done, {FocusId, FocusPid}}} ->
             NotifyFun(FocusPid, focus),
             State#state{focused_window_id = FocusId,
                         focused_window_pid = FocusPid};
-        {right, {done, {FocusId, FocusPid}}} ->
-            NotifyFun(FocusId, focus),
-            State#state{focused_window_id = FocusId,
-                        focused_window_pid = FocusPid};
-        {right, _} ->
-            State;
-        {up, {done, {FocusId, FocusPid}}} ->
-            NotifyFun(FocusId, focus),
-            State#state{focused_window_id = FocusId,
-                        focused_window_pid = FocusPid}
+        {_, _} ->
+            State
     end.
 
 focus_(left, Id, #window{id = Id, pid = Pid}, undefined) ->
@@ -486,23 +478,6 @@ focus_(right, Id, List, MaybeFound) when is_list(List) ->
 focus_(up, Id, Windows, undefined) ->
     #up{new = Window} = focus_(up, Id, Windows, #up{type = col}),
     {done, Window};
-% focus_(up,
-%        Id,
-%        #window{id = Id, pid = Pid},
-%        #up{win = undefined,
-%            parent = undefined}) ->
-%     #up{new = {Id, Pid}};
-% focus_(up,
-%        Id,
-%        #window{id = Id},
-%        #up{win = undefined,
-%            parent = {PId, PPid}}) ->
-%     #up{new = {PId, PPid}};
-% focus_(up,
-%        Id,
-%        #window{id = Id},
-%        #up{win = {WId, WPid}}) ->
-%     #up{new = {WId, WPid}};
 focus_(up,
        Id,
        #window{id = Id, pid = Pid},
@@ -599,11 +574,71 @@ focus_(up,
                     end,
                     Up#up{type = col, primary= Primary, pos = rest, new = New},
                     Rest),
-    Up2#up{type = row, pos = rest, parent = Up#up.parent}.
+    Up2#up{type = row, pos = rest, parent = Up#up.parent};
 
-% -record(up, {type = row :: type(),
-%              pos = first :: pos(),
-%              primary = undefined :: window() | undefined,
-%              parent = undefined :: window() | undefined,
-%              new = undefined :: window() | undefined}).
+focus_(down, Id, Rows, undefined) ->
+    focus_(down, Id, Rows, {false, col});
+focus_(down,
+       Id,
+       #window{id = Id},
+       {false, _}) ->
+    {true, col};
+focus_(down,
+       _Id,
+       #window{id = Id, pid = Pid},
+       {true, col}) ->
+    {done, {Id, Pid}};
+focus_(down,
+       _Id,
+       #window{},
+       _Acc) ->
+    {false, col};
+focus_(down,
+       _Id,
+       _Windows,
+       {done, {Id, Pid}}) ->
+    {done, {Id, Pid}};
+focus_(down,
+       _Id,
+       _Rows,
+       {skip, col}) ->
+    {skip, col};
+focus_(down,
+       Id,
+       Rows,
+       {Bool, col}) ->
+    Result =
+        lists:foldl(
+            fun(Row, Acc_) ->
+                focus_(down, Id, Row, Acc_)
+            end,
+            {Bool, row},
+            Rows),
+    case Result of
+        {true, _} ->
+            {skip, col};
+        {done, _} ->
+            Result;
+        {Bool_, _} ->
+            {Bool_, col}
+    end;
+focus_(down,
+       Id,
+       Columns,
+       {Bool, row}) ->
+    Result =
+        lists:foldl(
+            fun(Col, Acc_) ->
+                focus_(down, Id, Col, Acc_)
+            end,
+            {Bool, col},
+            Columns),
+    case Result of
+        {skip, col} ->
+            {true, row};
+        {done, _} ->
+            Result;
+        {Bool_, _} ->
+            {Bool_, row}
+    end.
 
