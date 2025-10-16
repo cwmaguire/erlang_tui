@@ -480,6 +480,7 @@ focus_(right, Id, List, MaybeFound) when is_list(List) ->
         Other ->
             Other
     end;
+
 focus_(up, Id, Windows, undefined) ->
     #up{new = Window} = focus_(up, Id, Windows, #up{type = col}),
     {done, Window};
@@ -497,12 +498,7 @@ focus_(up,
        _Id,
        #window{id = Id, pid = Pid},
        Up = #up{}) ->
-    Up#up{primary = {Id, Pid}};
-% focus_(up,
-%        _Id,
-%        #window{},
-%        Up = #up{}) ->
-%     Up;
+    Up#up{primary = {Id, Pid}, parent = {Id, Pid}};
 focus_(up,
        Id,
        _Column = [Row | Rest],
@@ -521,9 +517,9 @@ focus_(up,
                         focus_(up, Id, Row_, Acc)
                     end,
                     #up{type = row,
+                        pos = rest,
                         primary = undefined,
                         parent = Primary,
-                        pos = rest,
                         new = New},
                     Rest),
     Up2#up{type = col,
@@ -572,14 +568,14 @@ focus_(up,
        _Row = [ColOrWin | Rest],
        Up = #up{type = row,
                 pos = rest}) ->
-    #up{primary = Primary, new = New} = focus_(up, Id, ColOrWin, Up#up{type = col, pos = first}),
+    Up1 = #up{primary = Primary, new = New} = focus_(up, Id, ColOrWin, Up#up{type = col, pos = first}),
     Up2 =
         lists:foldl(fun(ColOrWin_, Acc) ->
                         focus_(up, Id, ColOrWin_, Acc)
                     end,
                     Up#up{type = col, primary= Primary, pos = rest, new = New},
                     Rest),
-    Up2#up{type = row, pos = rest, parent = Up#up.parent};
+    Up2#up{type = row, pos = rest, parent = Up1#up.parent};
 
 focus_(down, Id, Rows, undefined) ->
     focus_(down, Id, Rows, {false, col});

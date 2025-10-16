@@ -552,23 +552,22 @@ test_focus(_Config) ->
     A24 = cs_screen:focus_(up, S24),
     ?assertEqual(E24, A24),
 
+    dbg_focus_up(),
 
-    % ┌────┬──┐
-    % │ A  │C │
-    % │    ├──┤
-    % ├────┤D │
-    % │ B  │  │
-    % ├──┬─┴──┤
-    % │E │ Y  │
-    % │  ├────┤
-    % ├──┤ Z  │
-    % │X │    │
-    % └──┴────┘
-    W25 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
-    S25 = {state, W25, a, 4, 0, 0, 0, Noop},
-    E25 = {state, W25, b, 5, 0, 0, 0, Noop},
-    A25 = cs_screen:focus_(down, S25),
+    % ┌───┐
+    % │ X │ Z -> Y
+    % ├───┤
+    % │ Y │
+    % ├───┤
+    % │ Z │
+    % └───┘
+    W25 = [[Wx],[Wy],[Wz]],
+    S25 = {state, W25, z, 3, 0, 0, 0, Noop},
+    E25 = {state, W25, y, 2, 0, 0, 0, Noop},
+    A25 = cs_screen:focus_(up, S25),
     ?assertEqual(E25, A25),
+
+    dbg:stop(),
 
     % ┌────┬──┐
     % │ A  │C │
@@ -582,28 +581,45 @@ test_focus(_Config) ->
     % │X │    │
     % └──┴────┘
     W26 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
-    S26 = {state, W26, b, 5, 0, 0, 0, Noop},
-    E26 = {state, W26, e, 8, 0, 0, 0, Noop},
+    S26 = {state, W26, a, 4, 0, 0, 0, Noop},
+    E26 = {state, W26, b, 5, 0, 0, 0, Noop},
     A26 = cs_screen:focus_(down, S26),
     ?assertEqual(E26, A26),
 
+    % ┌────┬──┐
+    % │ A  │C │
+    % │    ├──┤
+    % ├────┤D │
+    % │ B  │  │
+    % ├──┬─┴──┤
+    % │E │ Y  │
+    % │  ├────┤
+    % ├──┤ Z  │
+    % │X │    │
+    % └──┴────┘
     W27 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
-    S27 = {state, W27, c, 6, 0, 0, 0, Noop},
-    E27 = {state, W27, d, 7, 0, 0, 0, Noop},
+    S27 = {state, W27, b, 5, 0, 0, 0, Noop},
+    E27 = {state, W27, e, 8, 0, 0, 0, Noop},
     A27 = cs_screen:focus_(down, S27),
     ?assertEqual(E27, A27),
 
     W28 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
-    S28 = {state, W28, y, 2, 0, 0, 0, Noop},
-    E28 = {state, W28, z, 3, 0, 0, 0, Noop},
+    S28 = {state, W28, c, 6, 0, 0, 0, Noop},
+    E28 = {state, W28, d, 7, 0, 0, 0, Noop},
     A28 = cs_screen:focus_(down, S28),
     ?assertEqual(E28, A28),
 
     W29 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
-    S29 = {state, W29, x, 1, 0, 0, 0, Noop},
-    E29 = {state, W29, x, 1, 0, 0, 0, Noop},
+    S29 = {state, W29, y, 2, 0, 0, 0, Noop},
+    E29 = {state, W29, z, 3, 0, 0, 0, Noop},
     A29 = cs_screen:focus_(down, S29),
     ?assertEqual(E29, A29),
+
+    W30 = [[[[Wa],[Wb]],[[Wc],[Wd]]],[[[We],[Wx]],[[Wy],[Wz]]]],
+    S30 = {state, W30, x, 1, 0, 0, 0, Noop},
+    E30 = {state, W30, x, 1, 0, 0, 0, Noop},
+    A30 = cs_screen:focus_(down, S30),
+    ?assertEqual(E30, A30),
 
     ok.
 
