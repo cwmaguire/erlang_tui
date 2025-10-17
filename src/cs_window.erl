@@ -118,7 +118,7 @@ draw(TFun, H, W, HasBorder) ->
         false ->
             ok
     end,
-    [draw_status_bar(TFun(X_, H)) || X_ <- lists:seq(0, W)],
+    [draw_status_bar(TFun(X_, H - 1)) || X_ <- lists:seq(0, W)],
     reset_cursor().
 
 reset_cursor() ->

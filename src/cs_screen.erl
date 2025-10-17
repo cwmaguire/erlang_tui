@@ -76,8 +76,7 @@ handle_cast({focus, Direction}, State1) ->
     State2 = focus_(Direction, State1),
     {noreply, State2};
 handle_cast({text, Text}, State = #state{focused_window_pid = Pid}) ->
-    % io:format("Pid: ~p", [Pid]),
-    gen_server:cast(Pid, {text, Text}),
+    cs_window:text(Pid, Text),
     {noreply, State};
 handle_cast(split_vertical, State1) ->
     State2 = split_window_(vertical,State1),

@@ -1,4 +1,18 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-15   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+Focus is done.
+
+TODO:
+- don't overwrite the status line of the window above
+- implement enter key
+- redraw screen on clear (F1)
+- wrapping to next line
+- saving to document
+- listen for SIGWINCH for window size change
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-08   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
