@@ -552,8 +552,6 @@ test_focus(_Config) ->
     A24 = cs_screen:focus_(up, S24),
     ?assertEqual(E24, A24),
 
-    dbg_focus_up(),
-
     % ┌───┐
     % │ X │ Z -> Y
     % ├───┤
@@ -566,8 +564,6 @@ test_focus(_Config) ->
     E25 = {state, W25, y, 2, 0, 0, 0, Noop},
     A25 = cs_screen:focus_(up, S25),
     ?assertEqual(E25, A25),
-
-    dbg:stop(),
 
     % ┌────┬──┐
     % │ A  │C │
@@ -620,6 +616,23 @@ test_focus(_Config) ->
     E30 = {state, W30, x, 1, 0, 0, 0, Noop},
     A30 = cs_screen:focus_(down, S30),
     ?assertEqual(E30, A30),
+
+    %dbg:tracer(),
+    %dbg:p(all, c),
+    %dbg:tpl(cs_screen,
+    %        focus_,
+    %        4,
+    %        [{'_',[],[{return_trace},
+    %                  {exception_trace},
+    %                  {message,{caller_line}}]}]),
+
+    W31 = [[Wx],[Wy,Wz]],
+    S31 = {state, W31, x, 1, 0, 0, 0, Noop},
+    E31 = {state, W31, y, 2, 0, 0, 0, Noop},
+    A31 = cs_screen:focus_(down, S31),
+    ?assertEqual(E31, A31),
+
+    % dbg:stop(),
 
     ok.
 

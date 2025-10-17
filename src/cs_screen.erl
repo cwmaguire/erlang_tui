@@ -609,7 +609,9 @@ focus_(down,
        {Bool, col}) ->
     Result =
         lists:foldl(
-            fun(Row, Acc_) ->
+            fun(_Row, Done = {done, _}) ->
+                    Done;
+               (Row, Acc_) ->
                 focus_(down, Id, Row, Acc_)
             end,
             {Bool, row},
@@ -628,7 +630,9 @@ focus_(down,
        {Bool, row}) ->
     Result =
         lists:foldl(
-            fun(Col, Acc_) ->
+            fun(_Col, Done = {done, _}) ->
+                    Done;
+               (Col, Acc_) ->
                 focus_(down, Id, Col, Acc_)
             end,
             {Bool, col},
