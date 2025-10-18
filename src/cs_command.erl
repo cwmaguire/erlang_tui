@@ -15,11 +15,12 @@
 
 -record(state, {}).
 
-input(_Input) ->
-    ok.
+input(Input) ->
+    % debug([Input]),
+    gen_server:cast(?MODULE, {input, Input}).
 
 start_link() ->
-    gen_server:start_link(?MODULE, [], _Opts = []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], _Opts = []).
 
 init(_Args) ->
     {ok, #state{}}.

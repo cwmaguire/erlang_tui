@@ -12,10 +12,11 @@
 -export([quit/0]).
 
 quit() ->
-    gen_server:cast(self(), quit).
+    io:format("quitting"),
+    gen_server:cast(?MODULE, quit).
 
 start_link() ->
-    gen_server:start_link(?MODULE, [], _Opts = []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], _Opts = []).
 
 init(_Args) ->
     {ok, undefined}.

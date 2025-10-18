@@ -12,7 +12,7 @@
 -record(state, {mode = command :: command | insert}).
 
 start_link() ->
-    gen_server:start_link(?MODULE, [], _Opts = []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], _Opts = []).
 
 init(_Args) ->
     {ok, #state{}}.
