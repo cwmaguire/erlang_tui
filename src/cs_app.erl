@@ -1,4 +1,4 @@
--module(cm_shell_app).
+-module(cs_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@ start() ->
 	application:start(cm_shell).
 
 start(_StartType, _StartArgs) ->
-    cm_shell_sup:start_link().
+    cs_sup:start_link().
 
 stop(_State) ->
 	halt().

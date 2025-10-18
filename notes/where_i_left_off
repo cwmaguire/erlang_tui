@@ -1,4 +1,100 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-17   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+TODO:
+x don't overwrite the status line of the window above
+- implement enter key
+- redraw screen on clear (F1)
+- wrapping to next line
+- saving to document
+- listen for SIGWINCH for window size change
+- insert mode / command mode
+  - Add dispatch gen_server
+    - dispatch either to screen or command
+
+What element of the system would load a document from disk?
+- cs_io? No, it deals with inputs and outputs ... screen and keyboard
+
+  Oh, a buffer process, of course.
+
+  cs_io sends data to the buffer, the buffer tells the window.
+
+  How do we manage the spatial relationship of what the buffer contains and
+  where it's written on screen?
+
+  1) Have the buffer and window track line numbers: buffer tells the window that
+  lines X:Y have been updated.
+
+  2) Have the buffer and window track line numbers and columns.
+
+  3) Have the buffer and window track blocks: x1,y1 to x2,y2
+
+  4) 
+
+                            Insert Mode          
+                                 │               
+                                 │               
+┌─────────┐       ┌───────────┐  │    ┌─────────┐
+│cs_io    ├──────►│cs_dispatch├──┴───►│cs_screen│
+└─────────┘       └──────────┬┘       └─────────┘
+                             │        ┌─────────┐
+                             └───┬───►│cs_cmd   │
+                                 │    └─────────┘
+                                 │               
+                                 │               
+                            Normal Mode          
+
+
+Using Ctrl+= and Ctrl+- to zoom in and out in asciiflow.com:
+
+ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ┃ const canvas = document.getElementById('ascii-canvas');
+ ┃ function dispatchZoom(delta) {
+ ┃ 
+ ┃   const rect = canvas.getBoundingClientRect();
+ ┃   const event = new WheelEvent('wheel', {
+ ┃     bubbles: true, cancelable: true, deltaY: delta * 10,  // Scale your preferred step (e.g., *5 for subtler)
+ ┃     clientX: rect.left + rect.width / 2,
+ ┃     clientY: rect.top + rect.height / 2
+ ┃   });
+ ┃   canvas.dispatchEvent(event);
+ ┃ }
+ ┃ document.addEventListener('keydown', (e) => {
+ ┃   if (e.ctrlKey) {  // Ctrl key (Mac-safe, no page zoom conflict)
+ ┃     if (e.key === '=') { dispatchZoom(-1); e.preventDefault(); }
+ ┃     if (e.key === '-') { dispatchZoom(1); e.preventDefault(); }
+ ┃   }
+ ┃ });
+ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Entering Unicode (or other special chars) in Neovim with key codes:
+
+:h i_CTRL-v & :h i_CTRL-v_digit
+
+ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ┃ first     char mode    max   nr of chars   max value ~
+ ┃ (none)    decimal      3     255
+ ┃ o or O    octal        3     377           (255)
+ ┃ x or X    hexadecimal  2     ff            (255)
+ ┃ u         hexadecimal  4     ffff          (65535)
+ ┃ U         hexadecimal  8     7fffffff      (2147483647)
+ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-16   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+TODO:
+x don't overwrite the status line of the window above
+- implement enter key
+- redraw screen on clear (F1)
+- wrapping to next line
+- saving to document
+- listen for SIGWINCH for window size change
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-15   ┃
 ┗━━━━━━━━━━━━━━━━┛
 

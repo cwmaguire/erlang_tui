@@ -1,4 +1,4 @@
--module(cm_shell_sup).
+-module(cs_buffer_sup).
 
 -behaviour(supervisor).
 
@@ -22,28 +22,11 @@ start_link() ->
 %%                  modules => modules()}   % optional
 init([]) ->
     SupFlags = #{
-        strategy => one_for_all,
+        strategy => simple_one_for_one,
         intensity => 0,
-        period => 1,
-		auto_shutdown => any_significant
+        period => 1
     },
-    ChildSpecs = [#{id => pg,
-					start => {pg, start_link, []},
-				    restart => permanent},
-				  #{id => io_nif,
-					start => {cs_io_nif, start_link, []},
-				    restart => permanent},
-				  #{id => io,
-					start => {cs_io, start_link, []},
-				    restart => transient,
-				    significant => true},
-				  #{id => screen,
-					start => {cs_screen, start_link, []},
-				    restart => transient,
-				    significant => true},
-                  #{id => window,
-					start => {cs_window_sup, start_link, []},
-				    restart => permanent}],
+    ChildSpecs = [#{id => ignored,
+					start => {cs_buffer, start_link, []},
+				    shutdown => brutal_kill}],
     {ok, {SupFlags, ChildSpecs}}.
-
-%% internal functions
