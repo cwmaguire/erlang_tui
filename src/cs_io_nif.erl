@@ -17,7 +17,7 @@
 -record(state, {}).
 
 on_module_load() ->
-    PrivDir = code:priv_dir(cm_shell),
+    PrivDir = code:priv_dir(cs),
     NifPath = filename:join(PrivDir, "erlang_tui"),
     io:format("PrivDir: ~p~n", [PrivDir]),
     io:format("NifPath: ~p~n", [NifPath]),
