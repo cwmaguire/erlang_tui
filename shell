@@ -1,2 +1,2 @@
 #!/usr/bin/env zsh
-rebar3 compile && erl -noshell -pa _build/default/lib/cm_shell/ebin -config sys.config -s cm_shell_app start
+rebar3 compile && erl -noshell -pa _build/default/lib/cs/ebin -config sys.config -s cs_app start

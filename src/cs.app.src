@@ -1,8 +1,8 @@
-{application, cm_shell, [
+{application, cs, [
     {description, "An OTP application"},
     {vsn, "0.1.0"},
     {registered, []},
-    {mod, {cm_shell_app, []}},
+    {mod, {cs_app, []}},
     {applications, [
         kernel,
         stdlib

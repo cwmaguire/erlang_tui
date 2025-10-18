@@ -7,7 +7,7 @@
 -export([stop/1]).
 
 start() ->
-	application:start(cm_shell).
+	application:start(cs).
 
 start(_StartType, _StartArgs) ->
     cs_sup:start_link().
