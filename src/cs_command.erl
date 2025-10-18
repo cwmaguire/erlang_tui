@@ -28,6 +28,10 @@ init(_Args) ->
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
+handle_cast({input, Input}, State) ->
+    debug("handle_cast"),
+    parse(Input),
+    {noreply, State};
 handle_cast(_Req, State) ->
     {noreply, State}.
 
@@ -97,6 +101,7 @@ escape_code({screen_size, H, W}) ->
     gen_server:cast(cs_io, {screen_size, H, W}).
 
 parse($q) ->
+    debug("Got to quit with q"),
     cs_quit:quit();
 parse(8) ->  % \b    ctrl-left
     debug("Focus <-"),
@@ -120,7 +125,7 @@ parse(Other) ->
     cs_screen:text(Other).
 
 debug(Text) ->
-    debug("CSIO: " ++ Text ++ "<                    ", 1, 6).
+    debug("CMD: " ++ Text ++ "<                    ", 1, 6).
 
 debug(Text, X, Y) ->
     cs_io:debug(Text, X, Y).

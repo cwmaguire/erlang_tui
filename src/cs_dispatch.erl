@@ -20,6 +20,8 @@ init(_Args) ->
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
+%% handle key mapping
+%% maybe type then delete in insert mode, like Vim
 handle_cast({input, Input}, State = #state{mode = command}) ->
     cs_command:input(Input),
     {noreply, State};

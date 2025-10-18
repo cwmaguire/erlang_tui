@@ -124,17 +124,20 @@ get_textarea_size() ->
 % - buffer, part of escape code       -> maybe escape code, in escape mode
 % - buffer, not part of escape code   -> not valid escape code, flip to normal, process buffer
 
+publish(Group, {textarea_size, H, W}) ->
+    [Pid ! {textarea_size, H, W} || Pid <- Group].
+
 maybe_parse([], ?ESC) ->
-    erlang:send_after(20, self(), esc_timeout),
+    erlang:send_after(20, ?MODULE, esc_timeout),
     [?ESC];
 maybe_parse([], Char) ->
-    cs_command:parse(Char),
+    cs_command:input(Char),
     [];
 maybe_parse(NotEscapeCode, esc_timeout) ->
-    cs_command:parse(NotEscapeCode),
+    cs_command:input(NotEscapeCode),
     [];
 maybe_parse(NotEscapeCode, ?ESC) ->
-    cs_command:parse(NotEscapeCode ++ [?ESC]),
+    cs_command:input(NotEscapeCode ++ [?ESC]),
     [];
 maybe_parse(MaybeEscapeCode, Char) ->
     case cs_esc:parse_escape(MaybeEscapeCode ++ [Char]) of
@@ -142,14 +145,11 @@ maybe_parse(MaybeEscapeCode, Char) ->
             cs_command:escape_code(EscapeCode),
             [];
         not_escape ->
-            cs_command:parse(MaybeEscapeCode ++ [Char]),
+            cs_command:input(MaybeEscapeCode ++ [Char]),
             [];
         _ ->
             MaybeEscapeCode ++ [Char]
     end.
-
-publish(Group, {textarea_size, H, W}) ->
-    [Pid ! {textarea_size, H, W} || Pid <- Group].
 
 debug_(Text, X, Y) ->
     cursor_pos_(X, Y),
