@@ -16,6 +16,7 @@
                 h = 0,
                 w = 0,
                 has_border = false,
+                has_status_bar = true,
                 cursor_pos,
                 temp_file_name}).
 
@@ -49,8 +50,9 @@ handle_cast({text, Text}, State = #state{translate_fun = TFun,
 handle_cast(draw, State = #state{translate_fun = TFun,
                                  w = W,
                                  h = H,
-                                 has_border = HasBorder}) ->
-    draw(TFun, H, W, HasBorder),
+                                 has_border = HasBorder,
+                                 has_status_bar = HasStatusBar}) ->
+    draw(TFun, H, W, HasBorder, HasStatusBar),
     {noreply, State};
 handle_cast({translate_fun, F}, State = #state{}) ->
     {noreply, State#state{translate_fun = F}};
@@ -106,7 +108,7 @@ focus(TFun, {X, Y}) ->
     {ScreenX, ScreenY} = TFun(X, Y),
     cs_io:cursor_pos(ScreenX, ScreenY).
 
-draw(TFun, H, W, HasBorder) ->
+draw(TFun, H, W, HasBorder, HasStatusBar) ->
     {X, Y} = TFun(5, 5),
 
     cs_io:do_atomic_ops([{cursor_pos, X, Y},
@@ -118,7 +120,12 @@ draw(TFun, H, W, HasBorder) ->
         false ->
             ok
     end,
-    [draw_status_bar(TFun(X_, H - 1)) || X_ <- lists:seq(0, W)],
+    case HasStatusBar of
+        true ->
+            [draw_status_bar(TFun(X_, H - 1)) || X_ <- lists:seq(0, W)];
+        false ->
+            ok
+    end,
     reset_cursor().
 
 reset_cursor() ->

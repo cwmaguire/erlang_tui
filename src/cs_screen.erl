@@ -42,12 +42,13 @@
 -export([delete/0]).
 
 -record(state, {windows = [],
-                focused_window_id,
-                focused_window_pid,
-                next_id = 1,
-                h = 0,
-                w = 0,
-                notify_fun = fun gen_server:cast/2}).
+                command_window :: #window{} | undefined,
+                focused_window_id :: integer() | undefined,
+                focused_window_pid :: pid() | undefined,
+                next_id = 1 :: integer(),
+                h = 0 :: integer(),
+                w = 0 :: integer(),
+                notify_fun = fun gen_server:cast/2 :: fun()}).
 
 focus(Direction) ->
     gen_server:cast(?MODULE, {focus, Direction}).
@@ -78,6 +79,10 @@ handle_cast({focus, Direction}, State1) ->
 handle_cast({text, Text}, State = #state{focused_window_pid = Pid}) ->
     cs_window:text(Pid, Text),
     {noreply, State};
+handle_cast({cmd_text, Text}, State = #state{command_window = CmdWindow}) ->
+    #window{pid = Pid} = CmdWindow,
+    cs_window:text(Pid, Text),
+    {noreply, State};
 handle_cast(split_vertical, State1) ->
     State2 = split_window_(vertical,State1),
     {noreply, State2};
@@ -96,9 +101,13 @@ handle_cast(_Req, State) ->
     {noreply, State}.
 
 handle_info({textarea_size, H, W}, State = #state{windows = []}) ->
-    State2 = #state{windows = Windows} = create_first_window(State, H, W),
+    State2 =
+        #state{command_window = CmdWindow,
+               windows = Windows} =
+            setup_windows(State, H, W),
     cs_io:clear_screen(),
-    draw(Windows),
+    draw([CmdWindow | Windows]),
+    gen_server:cast(cs_screen, {cmd_text, "this is the command line"}),
     {noreply, State2};
 handle_info({textarea_size, H, W}, State) ->
     {noreply, State#state{h = H, w = W}};
@@ -108,14 +117,24 @@ handle_info(_Info, State) ->
 terminate(_, _) ->
     ok.
 
-create_first_window(State = #state{next_id = Id}, H, W) ->
-    Window = #window{pid = Pid} = window(Id, _X = 0, _Y = 0, H, W),
+setup_windows(State = #state{next_id = Id}, H, W) ->
+    CommandWindowId = Id,
+    DefaultWindowId = CommandWindowId + 1,
+    NextId = DefaultWindowId + 1,
+    CommandWindow =
+        #window{} =
+            window(CommandWindowId, _X = 0, _Y = 0, H - 1, W),
+    DefaultWindow =
+        #window{pid = DefaultWindowPid} =
+            window(DefaultWindowId, __X = 0, __Y = H, 1, W),
+
     State#state{h = H,
                 w = W,
-                focused_window_id = Id,
-                focused_window_pid = Pid,
-                windows = [[Window]],
-                next_id = Id + 1}.
+                focused_window_id = DefaultWindowId,
+                focused_window_pid = DefaultWindowPid,
+                windows = [[DefaultWindow]],
+                command_window = CommandWindow,
+                next_id = NextId}.
 
 window(Id, _X, _Y, H, W) ->
     % F = translate_fun(X, Y),
