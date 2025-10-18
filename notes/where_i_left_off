@@ -1,4 +1,37 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-18   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+TODO:
+- implement enter key
+- redraw screen on clear (F1)
+- wrapping to next line
+- saving to document
+- listen for SIGWINCH for window size change
+- insert mode / command mode
+  - Add dispatch gen_server
+    - dispatch either to screen or command
+
+Dispatch examples:
+Mode | Input         | Route     | Result
+ins    a               screen      type a in focused window
+ins    map start       command     wait for more input
+ins    map timeout     screen      type buffered characters
+ins    map end         command     execute mapped instructions (e.g. `jk`)
+cmd    map start       command     wait for more input
+cmd    map timeout     command     nothing
+cmd    map end         command     execute mapped instructions
+ins    Esc             none        set command mode
+cmd    Esc             none        nothing
+ins    F2              screen      split vertical
+cmd    F2              screen      split vertical
+cmd    :               command     command entry mode, send {'text', ":"} to screen
+
+Should command have it's own control of the screen to write on the status bar?
+No, because the status "bar" can grow and shrink: it's a regular window with a
+buffer.
+ 
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-17   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
