@@ -36,6 +36,7 @@
 -export([focus/1]).
 -export([focus_/2]).
 -export([text/1]).
+-export([display/1]).
 -export([split_window/5]).
 -export([rotate_right/2]).
 -export([layout_windows/3]).
@@ -60,6 +61,9 @@ text(?ESC) ->
 text(Char) ->
     gen_server:cast(?MODULE, {text, [Char]}).
 
+display(Char) ->
+    gen_server:cast(?MODULE, {display, Char}).
+
 delete() ->
     gen_server:cast(?MODULE, delete).
 
@@ -77,7 +81,11 @@ handle_cast({focus, Direction}, State1) ->
     State2 = focus_(Direction, State1),
     {noreply, State2};
 handle_cast({text, Text}, State = #state{focused_window_pid = Pid}) ->
+    %% TODO send to buffer, buffer will update window
     cs_window:text(Pid, Text),
+    {noreply, State};
+handle_cast({display, Text}, State = #state{focused_window_pid = Pid}) ->
+    cs_window:display(Pid, Text),
     {noreply, State};
 handle_cast({cmd_text, Text}, State = #state{command_window = CmdWindow}) ->
     #window{pid = Pid} = CmdWindow,

@@ -11,18 +11,23 @@
 
 -export([input/1]).
 -export([debug/3]).
+-export([clear/2]).
 -export([cursor_pos/2]).
 -export([clear_screen/0]).
 -export([do_atomic_ops/1]).
 
 -record(state, {textarea_size,
                 monitor,
-                esc_buffer = []}).
+                esc_buffer = [],
+                send_after_ref :: reference() | undefined}).
 
 -define(ESC, 27).
 
 debug(Text, X, Y) ->
     gen_server:cast(?MODULE, {debug, Text, X, Y}).
+
+clear(Row1, Row2) ->
+    gen_server:cast(?MODULE, {clear, Row1, Row2}).
 
 input(Char) ->
     gen_server:cast(?MODULE, {input, Char}).
@@ -51,10 +56,18 @@ handle_call(_Req, _From, State) ->
 handle_cast(start, State) ->
     start(),
     {noreply, State};
-handle_cast({input, Char}, State = #state{esc_buffer = EscBuffer}) ->
-    % io:format("[~p]", [Char]),
-    NewBuffer = maybe_parse(EscBuffer, Char),
-    {noreply, State#state{esc_buffer = NewBuffer}};
+handle_cast({input, Char},
+            State1 = #state{esc_buffer = EscBuffer1,
+                            send_after_ref = SendAfterRef1}) ->
+    State2 =
+        case maybe_parse(EscBuffer1, Char, SendAfterRef1) of
+            {EscBuffer2, SendAfterRef2} ->
+                State1#state{esc_buffer = EscBuffer2,
+                            send_after_ref = SendAfterRef2};
+            EscBuffer2 ->
+                State1#state{esc_buffer = EscBuffer2}
+        end,
+    {noreply, State2};
 handle_cast({cursor_pos, X, Y}, State) ->
     cursor_pos_(X, Y),
     {noreply, State};
@@ -81,6 +94,9 @@ handle_cast({debug, "~", X, Y}, State) ->
 handle_cast({debug, Text, X, Y}, State) ->
     debug_(Text, X, Y),
     {noreply, State};
+handle_cast({clear, Row1, Row2}, State) ->
+    clear_(Row1, Row2),
+    {noreply, State};
 handle_cast(Req, State) ->
     Debug = lists:flatten(io_lib:format("cs_io unrecognized cast: ~p~n", [Req])),
     debug_(Debug, 1, 12),
@@ -91,6 +107,11 @@ handle_info({Ref, join, textarea_size, Joined},
                            textarea_size = {H, W}}) ->
     publish(Joined, {textarea_size, H, W}),
     {noreply, State};
+handle_info(esc_timeout, State = #state{esc_buffer = EscBuffer}) ->
+    SendAfterRef = undefined,
+    EscBuffer2 = maybe_parse(EscBuffer, esc_timeout, SendAfterRef),
+    {noreply, State#state{esc_buffer = EscBuffer2,
+                          send_after_ref = SendAfterRef}};
 handle_info({'DOWN', _Ref, process, Pid2, Reason}, State) ->
     io:format("~p died because ~p", [Pid2, Reason]),
     gen_server:cast(self(), restart),    
@@ -127,33 +148,46 @@ get_textarea_size() ->
 publish(Group, {textarea_size, H, W}) ->
     [Pid ! {textarea_size, H, W} || Pid <- Group].
 
-maybe_parse([], ?ESC) ->
-    erlang:send_after(20, ?MODULE, esc_timeout),
-    [?ESC];
-maybe_parse([], Char) ->
-    cs_command:input(Char),
+maybe_parse([], ?ESC, _) ->
+    Ref = erlang:send_after(200, ?MODULE, esc_timeout),
+    {[?ESC], Ref};
+maybe_parse([], Char, _) ->
+    cs_map:input(Char),
     [];
-maybe_parse(NotEscapeCode, esc_timeout) ->
-    cs_command:input(NotEscapeCode),
+maybe_parse(NotEscapeCode, esc_timeout, _) ->
+    cs_io:clear(10, 17),
+    cs_io:debug("Esc timeout", 0, 17),
+    cs_map:input(NotEscapeCode),
     [];
-maybe_parse(NotEscapeCode, ?ESC) ->
-    cs_command:input(NotEscapeCode ++ [?ESC]),
-    [];
-maybe_parse(MaybeEscapeCode, Char) ->
+maybe_parse(NotEscapeCode, ?ESC, SendAfterRef) ->
+    erlang:cancel_timer(SendAfterRef),
+    cs_map:input(NotEscapeCode),
+    maybe_parse([], ?ESC, undefined);
+maybe_parse(MaybeEscapeCode, Char, SendAfterRef) ->
+    erlang:cancel_timer(SendAfterRef),
     case cs_esc:parse_escape(MaybeEscapeCode ++ [Char]) of
         {escape, EscapeCode} ->
             cs_command:escape_code(EscapeCode),
             [];
         not_escape ->
-            cs_command:input(MaybeEscapeCode ++ [Char]),
+            cs_map:input(MaybeEscapeCode ++ [Char]),
             [];
         _ ->
-            MaybeEscapeCode ++ [Char]
+            Ref = erlang:send_after(200, ?MODULE, esc_timeout),
+            {MaybeEscapeCode ++ [Char], Ref}
     end.
 
 debug_(Text, X, Y) ->
     cursor_pos_(X, Y),
     debug_text(Text).
+
+clear_(Row1, Row2) ->
+    [clear_row(Row) || Row <- lists:seq(Row1, Row2)].
+
+clear_row(Row) ->
+    Spaces = ".,                              ",
+    cursor_pos_(1, Row),
+    debug_text(Spaces).
 
 cursor_pos_(X, Y) ->
     io:put_chars(cs_esc:cursor_pos(X, Y)).

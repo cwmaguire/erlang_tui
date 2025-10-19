@@ -41,6 +41,8 @@ handle_info(_Info, State) ->
 terminate(_, _) ->
     ok.
 
+escape_code(esc) ->
+    cs_dispatch:exit_insert_mode();
 escape_code(up) ->
     debug("up", 20, 20);
 escape_code(down) ->
@@ -100,6 +102,8 @@ escape_code({screen_size, H, W}) ->
     debug(Debug, 1, 11),
     gen_server:cast(cs_io, {screen_size, H, W}).
 
+parse($i) ->
+    cs_dispatch:enter_insert_mode();
 parse($q) ->
     debug("Got to quit with q"),
     cs_quit:quit();
@@ -121,8 +125,9 @@ parse(127) -> % delete
 parse(List) when is_list(List) ->
     [parse(Char) || Char <- List];
 parse(Other) ->
-    debug(["Sent ", Other, " to screen"]),
-    cs_screen:text(Other).
+    debug(["Got ", Other, " in cs_command"]).
+    % debug(["Sent ", Other, " to screen"]),
+    % cs_screen:text(Other).
 
 debug(Text) ->
     debug("CMD: " ++ Text ++ "<                    ", 1, 6).

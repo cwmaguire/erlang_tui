@@ -10,6 +10,7 @@
 -export([handle_info/2]).
 
 -export([text/2]).
+-export([display/2]).
 -export([random_file_name/0]).
 
 -record(state, {translate_fun,
@@ -22,6 +23,9 @@
 
 text(Pid, Text) ->
     gen_server:cast(Pid, {text, Text}).
+
+display(Pid, Text) ->
+    gen_server:cast(Pid, {display, Text}).
 
 start_link(TranslateFun, {H, W}) ->
     gen_server:start_link(?MODULE,
@@ -45,6 +49,12 @@ handle_cast({text, Text}, State = #state{translate_fun = TFun,
                                          h = H}) ->
     NewCursorPos = text_(TFun, CursorPos, Text, W, H),
     {noreply, State#state{cursor_pos = NewCursorPos}};
+handle_cast({text, Text}, State = #state{translate_fun = TFun,
+                                         cursor_pos = CursorPos,
+                                         w = W,
+                                         h = H}) ->
+    NewCursorPos = text_(TFun, CursorPos, Text, W, H),
+    {noreply, State};
 %% cs_screen should send 'draw' once windows are laid out.
 %% Will need translate function.
 handle_cast(draw, State = #state{translate_fun = TFun,

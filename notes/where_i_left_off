@@ -30,6 +30,19 @@ cmd    :               command     command entry mode, send {'text', ":"} to scr
 Should command have it's own control of the screen to write on the status bar?
 No, because the status "bar" can grow and shrink: it's a regular window with a
 buffer.
+
+If you create a long map, e.g. "kkkkkk" and you enter 5 k's, Neovim will type
+the first 'k', and then every 0.5 seconds, it will pull another 'k' off the
+command stack (queue?) and print it to the screen; you can add more 'k's at any
+time and then they'll keep popping off every 0.5 seconds.
+
+ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ┃ :lua vim.keymap.set("i", "kkkkkk", "<Esc>", opts)
+ ┃ :lua vim.keymap.del("i", "kkkkkk")
+ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Once a key comes out of the mapping queue/stack, it is no longer treated as
+ possible key map.
  
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-17   ┃
