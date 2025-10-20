@@ -160,7 +160,7 @@ maybe_parse(MaybeEscapeCode, Char, SendAfterRef) ->
     erlang:cancel_timer(SendAfterRef),
     case cs_esc:parse_escape(MaybeEscapeCode ++ [Char]) of
         {escape, EscapeCode} ->
-            cs_command:escape_code(EscapeCode),
+            cs_normal:escape_code(EscapeCode),
             [];
         not_escape ->
             cs_map:input(MaybeEscapeCode ++ [Char]),
