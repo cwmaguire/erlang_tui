@@ -37,7 +37,7 @@ init([]) ->
            significant => true},
          #{id => map, start => {cs_map, start_link, []}},
          #{id => dispatch, start => {cs_dispatch, start_link, []}},
-         #{id => command, start => {cs_command, start_link, []}},
+         #{id => normal, start => {cs_normal, start_link, []}},
          #{id => screen, start => {cs_screen, start_link, []}},
          #{id => window, start => {cs_window_sup, start_link, []}},
          #{id => doc, start => {cs_doc_sup, start_link, []}}],
