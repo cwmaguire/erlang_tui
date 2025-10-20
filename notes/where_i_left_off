@@ -9,6 +9,36 @@ TODO:
 - wrapping to next line
 - listen for SIGWINCH for window size change
 
+                                                           ┌─────────┐      
+                                                           │window   │◄──┐ Write to all views of the doc
+                                                           └─────────┘   │  
+                                            ┌─────────┐    ┌─────────┐   │  
+                                        ┌──►│screen   ├───►│window   │◄──┤  
+                                        │   └─────────┘    └───────┬─┘   │  
+                                        │                          │     │  
+┌─────────┐   ┌─────────┐   ┌─────────┐ │   ┌─────────┐            ▼     │  
+│io       ├──►│map      ├──►│dispatch ├─┼──►│normal   │          ┌───────┴─┐
+└─────────┘   └─────────┘   └─────────┘ │   └─────────┘          │document │
+                                        │                        └─────────┘
+                                        │   ┌────────┐                      
+                                        └──►│command │                      
+                                            └────────┘                      
+
+- io gets input from the C NIF reading from the PTY
+- map continually listens for key mappings
+  - displays the first key on the screen
+- dispatch tracks whether we're in "insert", "normal" and ... I suppose now
+  "comamnd" mode.
+- renamed "command" to "normal" so that I can have a "command" mode for entering
+  commands on the command line: e.g. `:w foo.txt`
+- "normal" mode, like in (Neo)Vim, handles key strokes when text isn't being
+  typed in (including backspaces, which kind of breaks the "insert" metaphor 
+- dispatch writes to screen which knows the currently focused window, and then
+  window knows what document is backing it.
+- a "document" is my rebellious name for a buffer. I may eventually capitulate
+  and go back to buffer.
+
+
 ┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-18   ┃
 ┗━━━━━━━━━━━━━━━━┛
