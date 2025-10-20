@@ -1,4 +1,15 @@
 ┏━━━━━━━━━━━━━━━━┓
+┃   2025-10-19   ┃
+┗━━━━━━━━━━━━━━━━┛
+
+TODO:
+- saving to document
+- implement enter key
+- redraw screen on clear (F1)
+- wrapping to next line
+- listen for SIGWINCH for window size change
+
+┏━━━━━━━━━━━━━━━━┓
 ┃   2025-10-18   ┃
 ┗━━━━━━━━━━━━━━━━┛
 
@@ -8,9 +19,9 @@ TODO:
 - wrapping to next line
 - saving to document
 - listen for SIGWINCH for window size change
-- insert mode / command mode
-  - Add dispatch gen_server
-    - dispatch either to screen or command
+x insert mode / command mode
+  x Add dispatch gen_server
+    x dispatch either to screen or command
 
 Dispatch examples:
 Mode | Input         | Route     | Result
