@@ -13,9 +13,22 @@
 -export([normal/3]).
 -export([command/3]).
 
+-export([input/1]).
+-export([enter_insert_mode/0]).
+-export([exit_insert_mode/0]).
+
 -record(data, {}).
 
 -define(ESC, 27).
+
+input(Input) ->
+    gen_statem:cast(?MODULE, {input, Input}).
+
+enter_insert_mode() ->
+    gen_statem:cast(?MODULE, enter_insert_mode).
+
+exit_insert_mode() ->
+    gen_statem:cast(?MODULE, exit_insert_mode).
 
 callback_mode() -> state_functions.
 
@@ -39,7 +52,7 @@ insert(cast, {input, Input}, _Data) ->
     cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
     cs_io:debug("Input in insert mode", 0, ?DEBUG_INS_INPUT),
     cs_screen:text(Input),
-    {keep_state_and_data};
+    keep_state_and_data;
 insert(cast, exit_insert_mode, Data) ->
     cs_io:clear(10, 17),
     cs_io:debug("Exiting insert while in insert", 0, ?DEBUG_INS_TO_CMD),
@@ -47,7 +60,7 @@ insert(cast, exit_insert_mode, Data) ->
 insert(cast, enter_insert_mode, _Data) ->
     cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
     cs_io:debug("Entering insert while in insert", 0, ?DEBUG_INS_TO_INS),
-    {keep_state_and_data};
+    keep_state_and_data;
 insert(EventType, EventContent, Data) ->
     handle_event(EventType, EventContent, Data).
 
@@ -55,7 +68,7 @@ normal(cast, {input, Input}, _Data) ->
     cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
     cs_io:debug("Input in command mode", 0, ?DEBUG_CMD_INPUT),
     cs_normal:input(Input),
-    {keep_state_and_data};
+    keep_state_and_data;
 normal(cast, enter_insert_mode, Data) ->
     cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
     cs_io:debug("Entering insert while in command", 0, ?DEBUG_CMD_TO_INS),
@@ -66,11 +79,7 @@ normal(EventType, EventContent, Data) ->
 command(EventType, EventContent, Data) ->
     handle_event(EventType, EventContent, Data).
 
-%% Handle events common to all states
-handle_event({call,From}, get_count, Data) ->
-    %% Reply with the current count
-    {keep_state,Data,[{reply,From,Data}]};
 handle_event(_, Req, Data) ->
     cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
     cs_io:debug(Req, 0, ?DEBUG_UNKNOWN_REQ),
-    {keep_state,Data}.
+    {keep_state, Data}.
