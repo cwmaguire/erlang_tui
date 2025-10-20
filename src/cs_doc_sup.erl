@@ -1,4 +1,4 @@
--module(cs_buffer_sup).
+-module(cs_doc_sup).
 
 -behaviour(supervisor).
 
@@ -27,6 +27,6 @@ init([]) ->
         period => 1
     },
     ChildSpecs = [#{id => ignored,
-					start => {cs_buffer, start_link, []},
+					start => {cs_doc, start_link, []},
 				    shutdown => brutal_kill}],
     {ok, {SupFlags, ChildSpecs}}.
