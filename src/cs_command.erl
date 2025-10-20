@@ -1,6 +1,8 @@
 -module(cs_command).
 -behaviour(gen_server).
 
+-include("debug.hrl").
+
 -export([start_link/0]).
 -export([init/1]).
 -export([terminate/2]).
@@ -122,6 +124,9 @@ parse(12) -> % \f    ctrl-right
 parse(127) -> % delete
     debug("Delete"),
     cs_screen:delete();
+parse($:) -> % command mode
+    debug("Delete"),
+    cs_screen:delete();
 parse(List) when is_list(List) ->
     [parse(Char) || Char <- List];
 parse(Other) ->
@@ -130,7 +135,7 @@ parse(Other) ->
     % cs_screen:text(Other).
 
 debug(Text) ->
-    debug("CMD: " ++ Text ++ "<                    ", 1, 6).
+    debug("CMD: " ++ Text ++ "<                    ", 1, ?DEBUG_CMD).
 
 debug(Text, X, Y) ->
     cs_io:debug(Text, X, Y).

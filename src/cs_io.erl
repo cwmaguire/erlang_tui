@@ -63,7 +63,7 @@ handle_cast({input, Char},
         case maybe_parse(EscBuffer1, Char, SendAfterRef1) of
             {EscBuffer2, SendAfterRef2} ->
                 State1#state{esc_buffer = EscBuffer2,
-                            send_after_ref = SendAfterRef2};
+                             send_after_ref = SendAfterRef2};
             EscBuffer2 ->
                 State1#state{esc_buffer = EscBuffer2}
         end,
@@ -101,7 +101,7 @@ handle_cast(Req, State) ->
     Debug = lists:flatten(io_lib:format("cs_io unrecognized cast: ~p~n", [Req])),
     debug_(Debug, 1, 12),
     {noreply, State}.
-%
+
 handle_info({Ref, join, textarea_size, Joined},
             State = #state{monitor = Ref,
                            textarea_size = {H, W}}) ->
@@ -131,19 +131,12 @@ start() ->
 
 tui_mode(true) ->
     io:put_chars(cs_esc:alternate_screen_buffer(true));
-    %io:put_chars(cs_esc:show_cursor(false));
 tui_mode(false) ->
     io:put_chars(cs_esc:show_cursor(true)),
     io:put_chars(cs_esc:alternate_screen_buffer(false)).
 
 get_textarea_size() ->
     io:put_chars(cs_esc:get_textarea_size()).
-
-% - no buffer, get ESC                -> flip to escape mode
-% - no buffer, get non-ESC            -> stay normal
-% - buffer, get ESC                   -> not valid escape code, flip to normal, process buffer
-% - buffer, part of escape code       -> maybe escape code, in escape mode
-% - buffer, not part of escape code   -> not valid escape code, flip to normal, process buffer
 
 publish(Group, {textarea_size, H, W}) ->
     [Pid ! {textarea_size, H, W} || Pid <- Group].

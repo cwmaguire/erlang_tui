@@ -2,6 +2,7 @@
 -behaviour(gen_server).
 
 -include("cs.hrl").
+-include("debug.hrl").
 %% the enter screen is called "screen"
 %% a screen has sections called "windows"
 %%
@@ -103,7 +104,8 @@ handle_cast(delete, State = #state{focused_window_pid = Pid}) ->
 handle_cast(print_windows, State = #state{windows = Windows}) ->
     CWindows = convert_windows(Windows, []),
     Text = io_lib:format("Windows: ~p", [CWindows]),
-    gen_server:cast(cs_io, {debug, Text, 2, 10}),
+    cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
+    cs_io:debug(Text, 2, ?DEBUG_WINDOWS),
     {noreply, State};
 handle_cast(_Req, State) ->
     {noreply, State}.
@@ -129,9 +131,10 @@ setup_windows(State = #state{next_id = Id}, H, W) ->
     CommandWindowId = Id,
     DefaultWindowId = CommandWindowId + 1,
     NextId = DefaultWindowId + 1,
+
     CommandWindow =
-        #window{} =
-            window(CommandWindowId, _X = 0, _Y = 0, H - 1, W),
+        window(CommandWindowId, _X = 0, _Y = 0, H - 1, W),
+
     DefaultWindow =
         #window{pid = DefaultWindowPid} =
             window(DefaultWindowId, __X = 0, __Y = H, 1, W),
@@ -145,8 +148,7 @@ setup_windows(State = #state{next_id = Id}, H, W) ->
                 next_id = NextId}.
 
 window(Id, _X, _Y, H, W) ->
-    % F = translate_fun(X, Y),
-    {ok, Pid} = supervisor:start_child(cs_window_sup, [undefined, {H, W}]),
+    Pid = cs_window:new(undefined, H, W),
     #window{id = Id, pid = Pid, h = H, w = W}.
 
 translate_fun(ScreenX, ScreenY) ->
@@ -154,10 +156,6 @@ translate_fun(ScreenX, ScreenY) ->
             {ScreenX + WindowX,
              ScreenY + WindowY}
     end.
-
-%% get_window(FocusId, Windows) ->
-%%     Index = #window.id,
-%%     #window{} = lists:keyfind(FocusId, Index, Windows).
 
 split_window_(Direction,
               State = #state{windows = Windows1,

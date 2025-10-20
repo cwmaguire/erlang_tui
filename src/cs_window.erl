@@ -1,7 +1,7 @@
 -module(cs_window).
 -behaviour(gen_server).
 
--export([start_link/2]).
+-export([start_link/3]).
 -export([init/1]).
 -export([terminate/2]).
 
@@ -9,32 +9,55 @@
 -export([handle_cast/2]).
 -export([handle_info/2]).
 
+-export([new/2]).
+-export([new/3]).
 -export([text/2]).
 -export([display/2]).
 -export([random_file_name/0]).
+-export([notify/3]).
 
--record(state, {translate_fun,
-                h = 0,
-                w = 0,
-                has_border = false,
-                has_status_bar = true,
+-record(state, {document_pid :: pid(),
+                translate_fun :: fun() | undefined,
+                h = 0 :: integer(),
+                w = 0 :: integer(),
+                has_border = false :: boolean(),
+                has_status_bar = true :: boolean(),
                 cursor_pos,
                 temp_file_name}).
+
+new(H, W) ->
+    new(undefined, H, W).
+
+new(DocumentPid, H, W) ->
+    {ok, Pid} = supervisor:start_child(cs_window_sup, [DocumentPid, H, W]),
+    Pid.
 
 text(Pid, Text) ->
     gen_server:cast(Pid, {text, Text}).
 
+notify(Pid, LineNo, Line) ->
+    gen_server:cast(Pid, {line_change, LineNo, Line}).
+
 display(Pid, Text) ->
     gen_server:cast(Pid, {display, Text}).
 
-start_link(TranslateFun, {H, W}) ->
+start_link(DocumentPid, H, W) ->
     gen_server:start_link(?MODULE,
-                          [TranslateFun, {H, W}],
+                          [DocumentPid, H, W],
                           _Opts = []).
 
-init([TranslateFun, {H, W}]) ->
+init([MaybeDocumentPid, H, W]) ->
     % gen_server:cast(self, draw),
-    {ok, #state{translate_fun = TranslateFun,
+    DocumentPid =
+        case MaybeDocumentPid of
+            Pid when is_pid(Pid) ->
+                cs_doc:add_window(self()),
+                Pid;
+            _ ->
+                cs_doc:new(self())
+        end,
+
+    {ok, #state{document_pid = DocumentPid,
                 cursor_pos = {1, 0}, % I think the rows and columns are 1-based.
                 h = H,
                 w = W,
@@ -49,11 +72,13 @@ handle_cast({text, Text}, State = #state{translate_fun = TFun,
                                          h = H}) ->
     NewCursorPos = text_(TFun, CursorPos, Text, W, H),
     {noreply, State#state{cursor_pos = NewCursorPos}};
-handle_cast({text, Text}, State = #state{translate_fun = TFun,
+handle_cast({text, Text}, State = #state{document_pid = DocumentPid,
+                                         translate_fun = TFun,
                                          cursor_pos = CursorPos,
                                          w = W,
                                          h = H}) ->
-    NewCursorPos = text_(TFun, CursorPos, Text, W, H),
+    cs_doc:text(DocumentPid, CursorPos, Text),
+    % NewCursorPos = text_(TFun, CursorPos, Text, W, H),
     {noreply, State};
 %% cs_screen should send 'draw' once windows are laid out.
 %% Will need translate function.
@@ -71,14 +96,22 @@ handle_cast({update, Fun, W, H, HasBorder}, State) ->
                           w = W,
                           h = H,
                           has_border = HasBorder}};
-handle_cast(delete, State = #state{translate_fun = TFun,
-                                         cursor_pos = CursorPos}) ->
+handle_cast(delete,
+            State = #state{translate_fun = TFun,
+                           cursor_pos = CursorPos}) ->
     NewCursorPos = delete_(TFun, CursorPos),
     {noreply, State#state{cursor_pos = NewCursorPos}};
 handle_cast(focus, State = #state{translate_fun = TFun,
                                   cursor_pos = CursorPos}) ->
     focus(TFun, CursorPos),
     {noreply, State};
+handle_cast({line_change, LineNo, Line},
+            State = #state{%cursor_pos = CursorPos,
+                           translate_fun = TFun,
+                           w = W,
+                           h = H}) ->
+    NewCursorPos = text_(TFun, {0, LineNo}, Line, W, H),
+    {noreply, State#state{cursor_pos = NewCursorPos}};
 handle_cast(_Req, State) ->
     {noreply, State}.
 

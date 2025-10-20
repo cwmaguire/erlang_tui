@@ -1,6 +1,8 @@
 -module(cs_map).
 -behaviour(gen_server).
 
+-include("debug.hrl").
+
 -export([start_link/0]).
 -export([init/1]).
 -export([terminate/2]).
@@ -49,11 +51,8 @@ handle_cast({input, Input},
             [partial | _] ->
                 PartialMap;
             _ ->
-                %% add all characters to buffer at cursor
-                %% redraw portion of line
-                %%   - includes deleting first character
-                cs_io:clear(10, 16),
-                cs_io:debug("no map match", 0, 11),
+                cs_io:clear(?MIN_DEBUG_LINE, ?MAX_DEBUG_LINE),
+                cs_io:debug("no map match", 0, ?DEBUG_NO_MAP),
                 [cs_dispatch:input(O) || O <- MaybeMap],
                 []
         end,
