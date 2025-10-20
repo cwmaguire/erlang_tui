@@ -1,4 +1,4 @@
--module(cs_command).
+-module(cs_normal).
 -behaviour(gen_server).
 
 -include("debug.hrl").
@@ -18,7 +18,6 @@
 -record(state, {}).
 
 input(Input) ->
-    % debug([Input]),
     gen_server:cast(?MODULE, {input, Input}).
 
 start_link() ->
@@ -125,14 +124,12 @@ parse(127) -> % delete
     debug("Delete"),
     cs_screen:delete();
 parse($:) -> % command mode
-    debug("Delete"),
-    cs_screen:delete();
+    debug("Command line mode"), 
+    cs_dispatch:enter_command_mode();
 parse(List) when is_list(List) ->
     [parse(Char) || Char <- List];
 parse(Other) ->
-    debug(["Got ", Other, " in cs_command"]).
-    % debug(["Sent ", Other, " to screen"]),
-    % cs_screen:text(Other).
+    debug(["Got ", Other, " in cs_normal"]).
 
 debug(Text) ->
     debug("CMD: " ++ Text ++ "<                    ", 1, ?DEBUG_CMD).
